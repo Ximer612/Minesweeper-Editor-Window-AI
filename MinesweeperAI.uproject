@@ -3,4 +3,11 @@
 	"EngineAssociation": "5.5",
 	"Category": "",
 	"Description": "",
+	"Modules": [
+		{
+			"Name": "MinesweeperAI",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
 }

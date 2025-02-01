@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "MinesweeperMingame",
+	"Description": "",
+	"Category": "Other",
+	"CreatedBy": "Ximer",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "MinesweeperMingame",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}
