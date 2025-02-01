@@ -54,6 +54,16 @@ void FMinesweeperMingameModule::ShutdownModule()
 
 TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
+	//button to ask to ai
+
+	//wait for response in another thread
+
+	//get response
+
+	//check if response is in a correct format
+
+	//generate field
+
 	FText WidgetText = FText::Format(
 		LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
 		FText::FromString(TEXT("FMinesweeperMingameModule::OnSpawnPluginTab")),
