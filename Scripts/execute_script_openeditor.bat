@@ -1,0 +1,1 @@
+"C:\Program Files\Epic Games\UE_5.5\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" "C:\Projects\Unreal\Minesweeper-Editor-Window-AI\MinesweeperAI.uproject" -ExecutePythonScript="C:\Projects\Unreal\Minesweeper-Editor-Window-AI\Scripts\my_script.py"

@@ -55,20 +55,12 @@ void FMinesweeperMingameModule::ShutdownModule()
 TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
 	//button to ask to ai
-
-	//wait for response in another thread
-
-	//get response
-
-	//check if response is in a correct format
-
-	//generate field
-
-	FText WidgetText = FText::Format(
-		LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
-		FText::FromString(TEXT("FMinesweeperMingameModule::OnSpawnPluginTab")),
-		FText::FromString(TEXT("MinesweeperMingame.cpp"))
-		);
+	// 
+	//FText WidgetText = FText::Format(
+	//	LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
+	//	FText::FromString(TEXT("FMinesweeperMingameModule::OnSpawnPluginTab")),
+	//	FText::FromString(TEXT("MinesweeperMingame.cpp"))
+	//	);
 
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
@@ -78,10 +70,28 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[
-				SNew(STextBlock)
-				.Text(WidgetText)
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(5.0f, 0.0f))
+				.AutoWidth()
+				[
+					SNew(SButton)
+						.Text(LOCTEXT("PaperExtractSpritesCancelButton", "Cancel"))
+						.TextStyle(FAppStyle::Get(), "DialogButtonText")
+						.HAlign(HAlign_Center)
+						//.OnClicked(this, &FMinesweeperMingameModule::PluginButtonClicked)
+				]
+
 			]
 		];
+
+	//wait for response in another thread
+
+//get response
+
+//check if response is in a correct format
+
+//generate field
 }
 
 void FMinesweeperMingameModule::PluginButtonClicked()
