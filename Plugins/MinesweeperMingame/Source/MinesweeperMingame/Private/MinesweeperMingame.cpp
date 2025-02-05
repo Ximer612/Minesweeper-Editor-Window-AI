@@ -3,11 +3,15 @@
 #include "MinesweeperMingame.h"
 #include "MinesweeperMingameStyle.h"
 #include "MinesweeperMingameCommands.h"
+
 #include "LevelEditor.h"
+
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "ToolMenus.h"
+
+#include <PythonBridge.h>
 
 static const FName MinesweeperMingameTabName("MinesweeperMingame");
 
@@ -54,6 +58,23 @@ void FMinesweeperMingameModule::ShutdownModule()
 
 TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Started!"));
+	AsyncThread([]()
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Inside new thread?!"));
+			UPythonBridge* bridge = UPythonBridge::Get();
+			FString response = bridge->FunctionImplementedInPython();
+
+			FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([response]() {
+				UE_LOG(LogTemp, Warning, TEXT("Response from another thread: %s"), *response);
+				}, TStatId(), nullptr, ENamedThreads::GameThread);
+
+			Task->Wait();
+		});
+
+	UE_LOG(LogTemp, Warning, TEXT("Passed!"));
+
+
 	//button to ask to ai
 	// 
 	//FText WidgetText = FText::Format(
@@ -113,9 +134,9 @@ void FMinesweeperMingameModule::RegisterMenus()
 	}
 
 	{
-		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar");
+		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");
 		{
-			FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("Settings");
+			FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("PluginTools");
 			{
 				FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FMinesweeperMingameCommands::Get().OpenPluginWindow));
 				Entry.SetCommandList(PluginCommands);

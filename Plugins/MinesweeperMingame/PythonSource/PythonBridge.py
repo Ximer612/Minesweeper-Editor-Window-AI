@@ -1,4 +1,4 @@
-#import unreal
+import unreal
 import requests
 import json
 
@@ -22,7 +22,7 @@ def is_valid_json(myjson):
     return False
   return True
 
-def ask_to_ai(prompt) -> str:
+def ask_to_ai(prompt) -> tuple[str, str]:
   response = send_rest_call(prompt)
 
   #checks if is a working json
@@ -49,13 +49,10 @@ def ask_to_ai(prompt) -> str:
   else:
     return response,"Invalid Json"
 
-minesweeper_prompt = "Generate a new 3x3 Minesweeper grid with 2 mines. Make sure that the result you gave is a valid json and that all the Minesweeper\'s mine board generation rules are matching! The response must look like this : { 'grid': [ [1, 'X', 1], [2, 2, 1], ['X', 1, 0] ] }"
 
-result = ask_to_ai("write me a a poem json")
+@unreal.uclass()
+class PythonBridgeImplementation(unreal.PythonBridge):
 
-#print(result[1])
-#print(result[0])
-
-cacca = "{\"poem\": \"The moon, a silver coin in night's dark purse,\nShines on the world with gentle, silent verse.\nStars like diamonds, scattered far and wide,\nTwinkle secrets that the darkness hides.\n\nA hushed wind whispers through the sleeping trees,\nCarrying dreams on wings of gentle breeze.\nThe world is quiet, bathed in silver light,\nA moment stolen from the day's fierce fight.\"}"
-
-print(is_valid_json(cacca))
+    @unreal.ufunction(override=True)
+    def function_implemented_in_python(self) -> str:
+        return ask_to_ai("How are you feeling inside Unreal Engine 5?")[0]
