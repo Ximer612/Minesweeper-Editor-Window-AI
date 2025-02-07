@@ -19,5 +19,5 @@ public:
 	static UPythonBridge* Get();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Python)
-	FString FunctionImplementedInPython() const;
+	FString FunctionImplementedInPython(const FString& CommandName) const;
 };

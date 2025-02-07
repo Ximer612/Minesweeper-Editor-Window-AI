@@ -13,6 +13,10 @@ def send_rest_call(prompt, model="gemma2:latest", url="http://localhost:11434/ap
 
   response_data = requests.post(url, data=body_data)
   json_response_data = json.loads(response_data.content)
+
+  if "error" in json_response_data:
+    return json_response_data["error"]
+
   return json_response_data["response"]
 
 def is_valid_json(myjson):
@@ -53,9 +57,7 @@ minesweeper_prompt = "Generate a new 3x3 Minesweeper grid with 2 mines. Make sur
 
 result = ask_to_ai("write me a a poem json")
 
-#print(result[1])
-#print(result[0])
+print(result[0])
+print(result[1])
 
-cacca = "{\"poem\": \"The moon, a silver coin in night's dark purse,\nShines on the world with gentle, silent verse.\nStars like diamonds, scattered far and wide,\nTwinkle secrets that the darkness hides.\n\nA hushed wind whispers through the sleeping trees,\nCarrying dreams on wings of gentle breeze.\nThe world is quiet, bathed in silver light,\nA moment stolen from the day's fierce fight.\"}"
-
-print(is_valid_json(cacca))
+#cacca = "{\"poem\": \"The moon, a silver coin in night's dark purse,\nShines on the world with gentle, silent verse.\nStars like diamonds, scattered far and wide,\nTwinkle secrets that the darkness hides.\n\nA hushed wind whispers through the sleeping trees,\nCarrying dreams on wings of gentle breeze.\nThe world is quiet, bathed in silver light,\nA moment stolen from the day's fierce fight.\"}"

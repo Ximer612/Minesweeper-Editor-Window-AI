@@ -13,6 +13,10 @@ def send_rest_call(prompt, model="gemma2:latest", url="http://localhost:11434/ap
 
   response_data = requests.post(url, data=body_data)
   json_response_data = json.loads(response_data.content)
+
+  if "error" in json_response_data:
+    return json_response_data["error"]
+
   return json_response_data["response"]
 
 def is_valid_json(myjson):
@@ -54,5 +58,6 @@ def ask_to_ai(prompt) -> tuple[str, str]:
 class PythonBridgeImplementation(unreal.PythonBridge):
 
     @unreal.ufunction(override=True)
-    def function_implemented_in_python(self) -> str:
-        return ask_to_ai("How are you feeling inside Unreal Engine 5?")[0]
+    def function_implemented_in_python(self, command_name) -> str:
+        print("I'm thinking...")
+        return ask_to_ai(command_name)[0]
