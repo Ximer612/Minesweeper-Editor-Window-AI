@@ -12,6 +12,7 @@
 #include "ToolMenus.h"
 
 #include "PythonBridge.h"
+#include "PythonResult.h"
 
 static const FName MinesweeperMingameTabName("MinesweeperMingame");
 
@@ -67,11 +68,12 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 	//	);
 
 	const FMargin ContentPadding = FMargin(500.f, 300.f);
-	const FText WritePrompText = LOCTEXT("PromptText", "Submit prompt!");
+	const FText WritePrompText = LOCTEXT("SendPromptAI", "Send prompt!");
 
 	//return SNew(SMinesweeperDockTab);
 
-	return SNew(SDockTab).TabRole(ETabRole::NomadTab)
+	return SNew(SDockTab)
+		.TabRole(ETabRole::NomadTab)
 		[
 			SNew(SOverlay)
 			+ SOverlay::Slot()
@@ -94,41 +96,49 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 						[
 							SNew(SHorizontalBox)
 							+SHorizontalBox::Slot()
+							.FillWidth(0.9f)
 							.HAlign(HAlign_Fill)
 							.VAlign(VAlign_Bottom)
 							[
 								SNew(SEditableTextBox)
-								//	.OnTextChanged(FOnTextChanged::CreateSP(this, &OnChangedPromptText))
+									.OnTextChanged_Lambda([this](const FText& InText){
+									OnChangedPromptText(InText);
+									})//(FOnTextChanged::CreateSP(this, &OnChangedPromptText))
 							]
 							+ SHorizontalBox::Slot()
+							.FillWidth(0.3f)
 							.HAlign(HAlign_Fill)
 							.VAlign(VAlign_Bottom)
 							[
 								SNew(SButton)
 								.HAlign(HAlign_Fill)
 								.VAlign(VAlign_Fill)
-								.Text(LOCTEXT("SendPromptAI", "Send prompt!"))
 								.OnClicked_Lambda(
-									[]() -> FReply
+									[this]() -> FReply
 									{
 										UE_LOG(LogTemp, Warning, TEXT("Started!"));
-										AsyncThread([]()
+										AsyncThread([this]() 
 											{
 												UE_LOG(LogTemp, Warning, TEXT("Inside new thread?!"));
-												UPythonBridge* bridge = UPythonBridge::Get();
-												FString response = bridge->FunctionImplementedInPython("How are you feeling inside Unreal Engine 5?");
 
-												FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([response]() {
-													UE_LOG(LogTemp, Warning, TEXT("Response from another thread: %s"), *response);
+												UPythonBridge* bridge = UPythonBridge::Get();
+												FPythonResult response = bridge->AskToAIPython(PromptText.ToString());
+
+												FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([&response]() {
+													UE_LOG(LogTemp, Warning, TEXT("Response: %s"), *response.Response);
+													UE_LOG(LogTemp, Warning, TEXT("Json response: %s"), *response.JsonResponse);
 													}, TStatId(), nullptr, ENamedThreads::GameThread);
 
 												Task->Wait();
 											});
 
-										UE_LOG(LogTemp, Warning, TEXT("Passed!"));
 
 										return FReply::Handled();
 									})
+									[
+										SNew(STextBlock)
+										.Text(WritePrompText)
+								]
 							]
 						]
 					]
@@ -144,64 +154,8 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 
 				]
 					//.SizeParam(FSizeParam(FSizeParam::SizeRule_Stretch,1.f,1.f))
-
-
 			]
 		];
-		
-		/*
-		.TabRole(ETabRole::NomadTab)
-		[
-			// Put your tab content here!
-			SNew(SOverlay)
-			+SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SNew(SBorder)
-				.ColorAndOpacity(FColor::Red)
-			]
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.Padding(FMargin(5.0f, 0.0f))
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.OnClicked_Lambda(
-						[]() -> FReply 
-						{
-							UE_LOG(LogTemp, Warning, TEXT("Started!"));
-							AsyncThread([]()
-								{
-									UE_LOG(LogTemp, Warning, TEXT("Inside new thread?!"));
-									UPythonBridge* bridge = UPythonBridge::Get();
-									FString response = bridge->FunctionImplementedInPython("How are you feeling inside Unreal Engine 5?");
-
-									FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([response]() {
-										UE_LOG(LogTemp, Warning, TEXT("Response from another thread: %s"), *response);
-										}, TStatId(), nullptr, ENamedThreads::GameThread);
-
-									Task->Wait();
-								});
-
-							UE_LOG(LogTemp, Warning, TEXT("Passed!"));
-
-							return FReply::Handled(); 
-						})
-					//.OnClicked(this, &SMinesweeperDockTab::OnPlayClicked)
-					.Text(WritePrompText)
-					.TextStyle(FAppStyle::Get(), "DialogButtonText")
-					.HAlign(HAlign_Center)
-				]
-
-			]
-		];
-	
-		*/
 
 	//wait for response in another thread
 

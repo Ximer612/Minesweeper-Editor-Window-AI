@@ -11,7 +11,11 @@ def send_rest_call(prompt, model="gemma2:latest", url="http://localhost:11434/ap
   }
   '''
 
-  response_data = requests.post(url, data=body_data)
+  try:
+    response_data = requests.post(url, data=body_data)
+  except:
+    return "Unable to connect to "+url
+
   json_response_data = json.loads(response_data.content)
 
   if "error" in json_response_data:

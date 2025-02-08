@@ -11,7 +11,11 @@ def send_rest_call(prompt, model="gemma2:latest", url="http://localhost:11434/ap
   }
   '''
 
-  response_data = requests.post(url, data=body_data)
+  try:
+    response_data = requests.post(url, data=body_data)
+  except:
+    return "Unable to connect to "+url
+
   json_response_data = json.loads(response_data.content)
 
   if "error" in json_response_data:
@@ -58,6 +62,7 @@ def ask_to_ai(prompt) -> tuple[str, str]:
 class PythonBridgeImplementation(unreal.PythonBridge):
 
     @unreal.ufunction(override=True)
-    def function_implemented_in_python(self, command_name) -> str:
-        print("I'm thinking...")
-        return ask_to_ai(command_name)[0]
+    def ask_to_ai_python(self, prompt) -> unreal.PythonResult:
+        print("I'm thinking about your prompt: \""+prompt+"\"...")
+        response = ask_to_ai(prompt)
+        return unreal.PythonResult(response[0],response[1])

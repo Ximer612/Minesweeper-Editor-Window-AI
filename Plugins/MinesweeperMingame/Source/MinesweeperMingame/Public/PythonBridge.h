@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "PythonResult.h"
 #include "PythonBridge.generated.h"
 
 /**
@@ -19,5 +20,6 @@ public:
 	static UPythonBridge* Get();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Python)
-	FString FunctionImplementedInPython(const FString& CommandName) const;
+	FPythonResult AskToAIPython(const FString& Prompt) const;
+
 };
