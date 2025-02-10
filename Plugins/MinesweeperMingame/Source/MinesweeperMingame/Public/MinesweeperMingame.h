@@ -18,10 +18,11 @@ public:
 	/** This function will be bound to Command (by default it will bring up plugin window) */
 	void PluginButtonClicked();
 
-	void OnChangedPromptText(const FText& InText);
-	FReply SendPrompt();
+	FReply SendPrompt(bool bResendLast = false);
 
-	FText PromptText;
+	void SendLastPrompt(const FText& InText, ETextCommit::Type CommitType);
+	void AddTextBlockToScrollBox(const FText& InText, const FSlateColor& InColor);
+
 private:
 
 	void RegisterMenus();
@@ -31,4 +32,9 @@ private:
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
 
+	TSharedPtr<SEditableTextBox> SendPromptEditableTextBox;
+	TSharedPtr<SScrollBox> ChatScrollBox;
+
+	FText PromptToSend;
+	bool bIsAiThinking;
 };

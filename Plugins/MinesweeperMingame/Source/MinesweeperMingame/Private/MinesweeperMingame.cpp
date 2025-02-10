@@ -60,17 +60,9 @@ void FMinesweeperMingameModule::ShutdownModule()
 TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
 	//button to ask to ai
-	// 
-	//FText WidgetText = FText::Format(
-	//	LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
-	//	FText::FromString(TEXT("FMinesweeperMingameModule::OnSpawnPluginTab")),
-	//	FText::FromString(TEXT("MinesweeperMingame.cpp"))
-	//	);
 
 	const FMargin ContentPadding = FMargin(500.f, 300.f);
 	const FText WritePrompText = LOCTEXT("SendPromptAI", "Send prompt!");
-
-	//return SNew(SMinesweeperDockTab);
 
 	return SNew(SDockTab)
 		.TabRole(ETabRole::NomadTab)
@@ -82,6 +74,12 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 			[
 				SNew(SVerticalBox)
 				+SVerticalBox::Slot()
+				[
+					SNew(SBorder)
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					.BorderBackgroundColor(FColor::Red)
+				]
 				+SVerticalBox::Slot()
 				[
 					SNew(SOverlay)
@@ -89,10 +87,19 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Fill)
 					[
-						SNew(SBorder)
-						.BorderBackgroundColor(FColor::Purple)
+						SNew(SVerticalBox)
+						+SVerticalBox::Slot()
 						.HAlign(HAlign_Fill)
 						.VAlign(VAlign_Fill)
+						.FillHeight(1.f)
+						[
+							SAssignNew(ChatScrollBox,SScrollBox)
+							
+						]
+						+SVerticalBox::Slot()
+						.HAlign(HAlign_Fill)
+						.VAlign(VAlign_Fill)
+						.FillHeight(0.3f)
 						[
 							SNew(SHorizontalBox)
 							+SHorizontalBox::Slot()
@@ -100,10 +107,8 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 							.HAlign(HAlign_Fill)
 							.VAlign(VAlign_Bottom)
 							[
-								SNew(SEditableTextBox)
-									.OnTextChanged_Lambda([this](const FText& InText){
-									OnChangedPromptText(InText);
-									})//(FOnTextChanged::CreateSP(this, &OnChangedPromptText))
+								SAssignNew(SendPromptEditableTextBox, SEditableTextBox)
+								.OnTextCommitted_Raw(this, &FMinesweeperMingameModule::SendLastPrompt)
 							]
 							+ SHorizontalBox::Slot()
 							.FillWidth(0.3f)
@@ -113,31 +118,10 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 								SNew(SButton)
 								.HAlign(HAlign_Fill)
 								.VAlign(VAlign_Fill)
-								.OnClicked_Lambda(
-									[this]() -> FReply
-									{
-										UE_LOG(LogTemp, Warning, TEXT("Started!"));
-										AsyncThread([this]() 
-											{
-												UE_LOG(LogTemp, Warning, TEXT("Inside new thread?!"));
-
-												UPythonBridge* bridge = UPythonBridge::Get();
-												FPythonResult response = bridge->AskToAIPython(PromptText.ToString());
-
-												FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([&response]() {
-													UE_LOG(LogTemp, Warning, TEXT("Response: %s"), *response.Response);
-													UE_LOG(LogTemp, Warning, TEXT("Json response: %s"), *response.JsonResponse);
-													}, TStatId(), nullptr, ENamedThreads::GameThread);
-
-												Task->Wait();
-											});
-
-
-										return FReply::Handled();
-									})
-									[
-										SNew(STextBlock)
-										.Text(WritePrompText)
+								.OnClicked_Raw(this, &FMinesweeperMingameModule::SendPrompt,false)
+								[
+									SNew(STextBlock)
+									.Text(WritePrompText)
 								]
 							]
 						]
@@ -150,6 +134,7 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 						.HAlign(HAlign_Right)
 						.VAlign(VAlign_Top)
 						.Text(LOCTEXT("SendAgainLastPromptAI","Send again last prompt!"))
+						.OnClicked_Raw(this, &FMinesweeperMingameModule::SendPrompt, true)
 					]
 
 				]
@@ -171,30 +156,75 @@ void FMinesweeperMingameModule::PluginButtonClicked()
 	FGlobalTabmanager::Get()->TryInvokeTab(MinesweeperMingameTabName);
 }
 
-void FMinesweeperMingameModule::OnChangedPromptText(const FText& InText)
+FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 {
-	PromptText = InText;
+	if (bIsAiThinking)
+	{
+		return FReply::Handled();
+	}
+
+
+	if (!bResendLast && !SendPromptEditableTextBox->GetText().IsEmpty())
+	{
+		PromptToSend = SendPromptEditableTextBox->GetText();
+	}
+
+	AddTextBlockToScrollBox(PromptToSend, FColor::Blue);
+
+	UE_LOG(LogTemp, Warning, TEXT("Started!"));
+	AsyncThread([this]()
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Inside new thread?!"));
+
+			bIsAiThinking = true;
+
+			UPythonBridge* bridge = UPythonBridge::Get();
+			FPythonResult response = bridge->AskToAIPython(PromptToSend.ToString());
+
+			FText ResponseText = FText::FromString("AI: " + response.Response);
+
+			UE_LOG(LogTemp, Warning, TEXT("Response: %s"), *response.Response);
+			UE_LOG(LogTemp, Warning, TEXT("Json response: %s"), *response.JsonResponse);
+
+			FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([&ResponseText,this]() {
+				
+				AddTextBlockToScrollBox(ResponseText, FColor::Red);
+
+				}, TStatId(), nullptr, ENamedThreads::GameThread);
+
+			Task->Wait();
+
+			bIsAiThinking = false;
+
+		});
+
+	return FReply::Handled();
 }
 
-FReply FMinesweeperMingameModule::SendPrompt()
+void FMinesweeperMingameModule::SendLastPrompt(const FText& InText, ETextCommit::Type CommitType)
 {
-//	//UE_LOG(LogTemp, Warning, TEXT("Started!"));
-//	//AsyncThread([this]()
-//	//	{
-//	//		UE_LOG(LogTemp, Warning, TEXT("Inside new thread?!"));
-//	//		UPythonBridge* bridge = UPythonBridge::Get();
-//	//		FString response = bridge->FunctionImplementedInPython(PromptText.ToString());
-//
-//	//		FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([response]() {
-//	//			UE_LOG(LogTemp, Warning, TEXT("Response from another thread: %s"), *response);
-//	//			}, TStatId(), nullptr, ENamedThreads::GameThread);
-//
-//	//		Task->Wait();
-//	//	});
-//
-//	//UE_LOG(LogTemp, Warning, TEXT("Passed!"));
-//
-	return FReply::Handled();
+	if(CommitType != ETextCommit::Type::OnEnter)
+	{
+		return;
+	}
+
+	SendPrompt();
+}
+
+void FMinesweeperMingameModule::AddTextBlockToScrollBox(const FText& InText, const FSlateColor& InColor)
+{
+	TSharedRef<STextBlock> NewChatText = SNew(STextBlock)
+										.Text(InText)
+										.ColorAndOpacity(InColor)
+										.AutoWrapText(true);
+
+	auto NewScrollBoxSlot = ChatScrollBox->AddSlot();
+	NewScrollBoxSlot.AttachWidget(NewChatText);
+	NewScrollBoxSlot.HAlign(HAlign_Fill);
+	NewScrollBoxSlot.VAlign(VAlign_Fill);
+	NewScrollBoxSlot.AutoSize();
+
+	ChatScrollBox->ScrollToEnd();
 }
 
 void FMinesweeperMingameModule::RegisterMenus()
