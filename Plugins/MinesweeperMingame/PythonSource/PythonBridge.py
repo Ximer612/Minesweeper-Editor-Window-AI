@@ -3,16 +3,17 @@ import requests
 import json
 
 def send_rest_call(prompt, model="gemma2:latest", url="http://localhost:11434/api/generate",stream=False) -> str:
-  body_data = '''
-  {
-    "model" : "'''+model+'''",
-    "stream" : false,
-    "prompt" : "'''+prompt+'''"
+
+  body_data = {
+    "model" : model,
+    "stream": stream,
+    "prompt" : prompt    
   }
-  '''
+
+  payload = json.dumps(body_data)
 
   try:
-    response_data = requests.post(url, data=body_data)
+    response_data = requests.post(url, payload)
   except:
     return "Unable to connect to "+url
 
@@ -30,33 +31,40 @@ def is_valid_json(myjson):
     return False
   return True
 
+#working with gemma2
+def find_json_in_text(text:str):
+
+  text = text.replace('\n','')
+
+  json_header='```json'
+  json_footer='```'
+
+  first_open_bracket = text.find(json_header)
+
+  if first_open_bracket == -1:
+    return "none"
+
+  first_open_bracket += + len(json_header)
+
+  last_bracket_index = text.find(json_footer,first_open_bracket)
+
+  json_result = text[first_open_bracket:last_bracket_index]
+
+  return json_result
+
 def ask_to_ai(prompt) -> tuple[str, str]:
   response = send_rest_call(prompt)
 
   #checks if is a working json
-  brackets_index = 0
-  first_open_bracket = response.find('{')
-  last_bracket_index = -1
-  for i, char in enumerate(response):
-    if char == '{':
-      brackets_index+=1
-    elif char == '}':
-      brackets_index-=1
-      if brackets_index == 0:
-        last_bracket_index = i + 1
-        break
+  json_result = find_json_in_text(response)
 
-  if last_bracket_index == -1 :
-    #there isn't a json inside this message
-    return response,"No Json Requested"
+  if json_result == "none":
+    return response,"none"
 
-  minesweeper_field_json = response[first_open_bracket:last_bracket_index].replace('\n','').replace('\'','\"')
-
-  if is_valid_json(minesweeper_field_json):
-    return response,minesweeper_field_json
+  if is_valid_json(json_result):
+    return response,json_result
   else:
-    return response,"Invalid Json"
-
+    return response,"invalid"
 
 @unreal.uclass()
 class PythonBridgeImplementation(unreal.PythonBridge):

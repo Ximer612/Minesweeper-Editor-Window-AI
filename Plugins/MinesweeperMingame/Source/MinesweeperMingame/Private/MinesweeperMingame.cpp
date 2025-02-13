@@ -78,16 +78,39 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 					SNew(SBorder)
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Fill)
-					.BorderBackgroundColor(FColor::Red)
+					.ForegroundColor(FColor::Yellow)
+					.BorderBackgroundColor(FColor::Magenta)
+					.ColorAndOpacity(FColor::Blue)
+					[
+						SNew(SGridPanel)
+
+					]
 				]
 				+SVerticalBox::Slot()
 				[
 					SNew(SOverlay)
 					+ SOverlay::Slot()
+					.Padding(10.f)
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Fill)
 					[
 						SNew(SVerticalBox)
+						+SVerticalBox::Slot()
+						.HAlign(HAlign_Right)
+						.VAlign(VAlign_Top)
+						.AutoHeight()
+						[
+							SNew(SButton)
+								.HAlign(HAlign_Fill)
+								//.HAlign(HAlign_Right)
+								//.VAlign(VAlign_Top)
+								.VAlign(VAlign_Fill)
+								.OnClicked_Raw(this, &FMinesweeperMingameModule::SendPrompt, true)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("SendAgainLastPromptAI", "Send again last prompt!"))
+								]
+						]
 						+SVerticalBox::Slot()
 						.HAlign(HAlign_Fill)
 						.VAlign(VAlign_Fill)
@@ -105,19 +128,22 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 							+SHorizontalBox::Slot()
 							.FillWidth(0.9f)
 							.HAlign(HAlign_Fill)
-							.VAlign(VAlign_Bottom)
+							.VAlign(VAlign_Fill)
 							[
 								SAssignNew(SendPromptEditableTextBox, SEditableTextBox)
 								.OnTextCommitted_Raw(this, &FMinesweeperMingameModule::SendLastPrompt)
+								.BackgroundColor(FColor::Yellow)
+								.ForegroundColor(FColor::Yellow)
 							]
 							+ SHorizontalBox::Slot()
 							.FillWidth(0.3f)
 							.HAlign(HAlign_Fill)
-							.VAlign(VAlign_Bottom)
+							.VAlign(VAlign_Center)
+							.AutoWidth()
 							[
 								SNew(SButton)
 								.HAlign(HAlign_Fill)
-								.VAlign(VAlign_Fill)
+								.VAlign(VAlign_Center)
 								.OnClicked_Raw(this, &FMinesweeperMingameModule::SendPrompt,false)
 								[
 									SNew(STextBlock)
@@ -126,16 +152,7 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 							]
 						]
 					]
-					+ SOverlay::Slot()
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Top)
-					[
-						SNew(SButton)
-						.HAlign(HAlign_Right)
-						.VAlign(VAlign_Top)
-						.Text(LOCTEXT("SendAgainLastPromptAI","Send again last prompt!"))
-						.OnClicked_Raw(this, &FMinesweeperMingameModule::SendPrompt, true)
-					]
+
 
 				]
 					//.SizeParam(FSizeParam(FSizeParam::SizeRule_Stretch,1.f,1.f))
@@ -169,26 +186,28 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 		PromptToSend = SendPromptEditableTextBox->GetText();
 	}
 
-	AddTextBlockToScrollBox(PromptToSend, FColor::Blue);
+	AddTextBlockToScrollBox(FText::FromString("<Me>: " + PromptToSend.ToString()), FColor::Blue);
 
-	UE_LOG(LogTemp, Warning, TEXT("Started!"));
 	AsyncThread([this]()
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Inside new thread?!"));
-
 			bIsAiThinking = true;
 
 			UPythonBridge* bridge = UPythonBridge::Get();
 			FPythonResult response = bridge->AskToAIPython(PromptToSend.ToString());
 
-			FText ResponseText = FText::FromString("AI: " + response.Response);
-
 			UE_LOG(LogTemp, Warning, TEXT("Response: %s"), *response.Response);
 			UE_LOG(LogTemp, Warning, TEXT("Json response: %s"), *response.JsonResponse);
 
-			FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([&ResponseText,this]() {
+			FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([&response,this]() {
 				
+				FText ResponseText = FText::FromString("<AI>: " + response.Response);
 				AddTextBlockToScrollBox(ResponseText, FColor::Red);
+
+				if (response.JsonResponse != "none" && response.JsonResponse != "invalid")
+				{
+					FText ResponseJson = FText::FromString("<AI>: " + response.JsonResponse);
+					AddTextBlockToScrollBox(ResponseJson, FColor::Magenta);
+				}
 
 				}, TStatId(), nullptr, ENamedThreads::GameThread);
 
