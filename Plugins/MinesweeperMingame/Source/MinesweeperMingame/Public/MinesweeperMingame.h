@@ -21,6 +21,8 @@ public:
 	FReply SendPrompt(bool bResendLast = false);
 
 	void SendLastPrompt(const FText& InText, ETextCommit::Type CommitType);
+	void ClearMinesweeperMinigame();
+	void AddButtonMinesweeperMinigame(const FString& InString, const int32& InColumn, const int32& InRow);
 	void AddTextBlockToScrollBox(const FText& InText, const FSlateColor& InColor);
 
 private:
@@ -34,6 +36,7 @@ private:
 
 	TSharedPtr<SEditableTextBox> SendPromptEditableTextBox;
 	TSharedPtr<SScrollBox> ChatScrollBox;
+	TSharedPtr<SGridPanel> MinesGridPanel;
 
 	FText PromptToSend;
 	bool bIsAiThinking;

@@ -72,5 +72,6 @@ class PythonBridgeImplementation(unreal.PythonBridge):
     @unreal.ufunction(override=True)
     def ask_to_ai_python(self, prompt) -> unreal.PythonResult:
         print("I'm thinking about your prompt: \""+prompt+"\"...")
+        #return unreal.PythonResult("TEST RESPONSE",'{ "grid": [  [1, "X", 1],  [2, 1, 1],  ["X", 1, 0] ]}')
         response = ask_to_ai(prompt)
         return unreal.PythonResult(response[0],response[1])

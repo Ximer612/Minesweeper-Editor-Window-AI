@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using UnrealBuildTool.Rules;
 
 public class MinesweeperMingame : ModuleRules
 {
@@ -26,6 +27,8 @@ public class MinesweeperMingame : ModuleRules
 			new string[]
 			{
 				"Core",
+                "Json",
+				"JsonUtilities" 
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

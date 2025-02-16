@@ -13,6 +13,7 @@
 
 #include "PythonBridge.h"
 #include "PythonResult.h"
+#include "Json.h"
 
 static const FName MinesweeperMingameTabName("MinesweeperMingame");
 
@@ -59,7 +60,7 @@ void FMinesweeperMingameModule::ShutdownModule()
 
 TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-	//button to ask to ai
+	//UI to ask to ai
 
 	const FMargin ContentPadding = FMargin(500.f, 300.f);
 	const FText WritePrompText = LOCTEXT("SendPromptAI", "Send prompt!");
@@ -81,16 +82,16 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 					.ForegroundColor(FColor::Yellow)
 					.BorderBackgroundColor(FColor::Magenta)
 					.ColorAndOpacity(FColor::Blue)
+					.Padding(20.f)
 					[
-						SNew(SGridPanel)
-
+						SAssignNew(MinesGridPanel,SGridPanel)
 					]
 				]
 				+SVerticalBox::Slot()
 				[
 					SNew(SOverlay)
 					+ SOverlay::Slot()
-					.Padding(10.f)
+					.Padding(20.f)
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Fill)
 					[
@@ -102,8 +103,6 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 						[
 							SNew(SButton)
 								.HAlign(HAlign_Fill)
-								//.HAlign(HAlign_Right)
-								//.VAlign(VAlign_Top)
 								.VAlign(VAlign_Fill)
 								.OnClicked_Raw(this, &FMinesweeperMingameModule::SendPrompt, true)
 								[
@@ -152,20 +151,9 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 							]
 						]
 					]
-
-
 				]
-					//.SizeParam(FSizeParam(FSizeParam::SizeRule_Stretch,1.f,1.f))
 			]
 		];
-
-	//wait for response in another thread
-
-//get response
-
-//check if response is in a correct format
-
-//generate field
 }
 
 void FMinesweeperMingameModule::PluginButtonClicked()
@@ -188,11 +176,13 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 
 	AddTextBlockToScrollBox(FText::FromString("<Me>: " + PromptToSend.ToString()), FColor::Blue);
 
+	//wait for response in another thread
 	AsyncThread([this]()
 		{
 			bIsAiThinking = true;
 
 			UPythonBridge* bridge = UPythonBridge::Get();
+			//get response
 			FPythonResult response = bridge->AskToAIPython(PromptToSend.ToString());
 
 			UE_LOG(LogTemp, Warning, TEXT("Response: %s"), *response.Response);
@@ -203,10 +193,29 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 				FText ResponseText = FText::FromString("<AI>: " + response.Response);
 				AddTextBlockToScrollBox(ResponseText, FColor::Red);
 
+				//check if response is in a correct format
 				if (response.JsonResponse != "none" && response.JsonResponse != "invalid")
 				{
 					FText ResponseJson = FText::FromString("<AI>: " + response.JsonResponse);
 					AddTextBlockToScrollBox(ResponseJson, FColor::Magenta);
+
+					//generate field
+					TSharedPtr<FJsonObject> JsonParsed;
+					TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(response.JsonResponse);
+					if (FJsonSerializer::Deserialize(JsonReader, JsonParsed))
+					{
+						const TArray<TSharedPtr<FJsonValue>>& GridArray = JsonParsed->GetArrayField("grid");
+
+						for (size_t y = 0; y < GridArray.Num(); y++)
+						{
+							const TArray<TSharedPtr<FJsonValue>>& JsonRow = GridArray[y]->AsArray();
+
+							for (int32 x = 0; x < JsonRow.Num(); x++)
+							{
+								AddButtonMinesweeperMinigame(JsonRow[x].Get()->AsString(), x, y);
+							}
+						}
+					}
 				}
 
 				}, TStatId(), nullptr, ENamedThreads::GameThread);
@@ -228,6 +237,27 @@ void FMinesweeperMingameModule::SendLastPrompt(const FText& InText, ETextCommit:
 	}
 
 	SendPrompt();
+}
+
+void FMinesweeperMingameModule::ClearMinesweeperMinigame()
+{
+	MinesGridPanel->ClearChildren();
+}
+
+void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InString, const int32& InColumn, const int32& InRow)
+{
+	TSharedRef<SButton> Button = SNew(SButton)
+		[
+			SNew(STextBlock)
+				.Text(FText::FromString(InString))
+				.ColorAndOpacity(FColor::Blue)
+				.AutoWrapText(true)
+		];
+
+	auto NewScrollBoxSlot = MinesGridPanel->AddSlot(InColumn, InRow);
+	NewScrollBoxSlot.AttachWidget(Button);
+	NewScrollBoxSlot.HAlign(HAlign_Fill);
+	NewScrollBoxSlot.VAlign(VAlign_Fill);
 }
 
 void FMinesweeperMingameModule::AddTextBlockToScrollBox(const FText& InText, const FSlateColor& InColor)
