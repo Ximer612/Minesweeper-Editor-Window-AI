@@ -6,6 +6,7 @@
 
 class FToolBarBuilder;
 class FMenuBuilder;
+class SMyObject;
 
 class FMinesweeperMingameModule : public IModuleInterface
 {
@@ -38,6 +39,12 @@ private:
 	TSharedPtr<SScrollBox> ChatScrollBox;
 	TSharedPtr<SGridPanel> MinesGridPanel;
 
+	TArray<TSharedRef<SMyObject>> MinesButtons;
+	TArray<int32> MinesweeperField;
+	int32 MinesweeperMines;
+
 	FText PromptToSend;
 	bool bIsAiThinking;
+	FOnClicked OnClickedOnMinesweeperButton;
+
 };

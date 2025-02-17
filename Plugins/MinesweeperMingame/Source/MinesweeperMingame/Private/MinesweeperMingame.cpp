@@ -15,6 +15,8 @@
 #include "PythonResult.h"
 #include "Json.h"
 
+#include "MyObject.h"
+
 static const FName MinesweeperMingameTabName("MinesweeperMingame");
 
 #define LOCTEXT_NAMESPACE "FMinesweeperMingameModule"
@@ -40,6 +42,7 @@ void FMinesweeperMingameModule::StartupModule()
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(MinesweeperMingameTabName, FOnSpawnTab::CreateRaw(this, &FMinesweeperMingameModule::OnSpawnPluginTab))
 		.SetDisplayName(LOCTEXT("FMinesweeperMingameTabTitle", "MinesweeperMingame"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
+
 }
 
 void FMinesweeperMingameModule::ShutdownModule()
@@ -81,7 +84,7 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 					.VAlign(VAlign_Fill)
 					.ForegroundColor(FColor::Yellow)
 					.BorderBackgroundColor(FColor::Magenta)
-					.ColorAndOpacity(FColor::Blue)
+					.ColorAndOpacity(FColor::Yellow)
 					.Padding(20.f)
 					[
 						SAssignNew(MinesGridPanel,SGridPanel)
@@ -131,8 +134,6 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 							[
 								SAssignNew(SendPromptEditableTextBox, SEditableTextBox)
 								.OnTextCommitted_Raw(this, &FMinesweeperMingameModule::SendLastPrompt)
-								.BackgroundColor(FColor::Yellow)
-								.ForegroundColor(FColor::Yellow)
 							]
 							+ SHorizontalBox::Slot()
 							.FillWidth(0.3f)
@@ -172,9 +173,10 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 	if (!bResendLast && !SendPromptEditableTextBox->GetText().IsEmpty())
 	{
 		PromptToSend = SendPromptEditableTextBox->GetText();
+		SendPromptEditableTextBox->SetText(FText::GetEmpty());
 	}
 
-	AddTextBlockToScrollBox(FText::FromString("<Me>: " + PromptToSend.ToString()), FColor::Blue);
+	AddTextBlockToScrollBox(FText::FromString("<Me>: " + PromptToSend.ToString()), FColor::Cyan);
 
 	//wait for response in another thread
 	AsyncThread([this]()
@@ -204,7 +206,7 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 					TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(response.JsonResponse);
 					if (FJsonSerializer::Deserialize(JsonReader, JsonParsed))
 					{
-						const TArray<TSharedPtr<FJsonValue>>& GridArray = JsonParsed->GetArrayField("grid");
+						const TArray<TSharedPtr<FJsonValue>>& GridArray = JsonParsed->GetArrayField(TEXT("grid"));
 
 						for (size_t y = 0; y < GridArray.Num(); y++)
 						{
@@ -215,6 +217,7 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 								AddButtonMinesweeperMinigame(JsonRow[x].Get()->AsString(), x, y);
 							}
 						}
+
 					}
 				}
 
@@ -241,23 +244,46 @@ void FMinesweeperMingameModule::SendLastPrompt(const FText& InText, ETextCommit:
 
 void FMinesweeperMingameModule::ClearMinesweeperMinigame()
 {
+	for (size_t i = 0; i < MinesButtons.Num(); i++)
+	{
+		TSharedRef<SButton> Button = MinesButtons[i];
+		Button->SetVisibility(EVisibility::Collapsed);
+	}
+
 	MinesGridPanel->ClearChildren();
+	MinesweeperField.Empty();
+	MinesweeperMines = 0;
 }
 
 void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InString, const int32& InColumn, const int32& InRow)
 {
-	TSharedRef<SButton> Button = SNew(SButton)
-		[
-			SNew(STextBlock)
-				.Text(FText::FromString(InString))
-				.ColorAndOpacity(FColor::Blue)
-				.AutoWrapText(true)
-		];
+	int32 CellValue = 0;
+
+	if (FCString::IsNumeric(*InString))
+	{
+		CellValue = FCString::Atoi(*InString);
+	}
+	else 
+	{
+		// if not a number then is a bomb!
+		CellValue = INT32_MAX;
+		MinesweeperMines++;
+	}
+
+	MinesweeperField.Add(CellValue);
+
+	TSharedRef<SMyObject> Button = SNew(SMyObject);
+
+	MinesButtons.Add(Button);
 
 	auto NewScrollBoxSlot = MinesGridPanel->AddSlot(InColumn, InRow);
 	NewScrollBoxSlot.AttachWidget(Button);
 	NewScrollBoxSlot.HAlign(HAlign_Fill);
 	NewScrollBoxSlot.VAlign(VAlign_Fill);
+
+	Button->Value = CellValue;
+	Button->Column = InColumn;
+	Button->Row = InRow;
 }
 
 void FMinesweeperMingameModule::AddTextBlockToScrollBox(const FText& InText, const FSlateColor& InColor)
