@@ -22,6 +22,7 @@ public:
 	FString DefaultStringValue = " ";
 	FText MyText;
 	TArray<TSharedRef<SMineButton>> Neighbours;
+	bool IsHidden = true;
 
 	virtual void Press() override;
 

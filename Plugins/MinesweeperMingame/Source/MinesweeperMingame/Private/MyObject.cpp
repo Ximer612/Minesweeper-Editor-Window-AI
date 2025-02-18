@@ -20,13 +20,13 @@ void SMineButton::Press()
 {
 	switch (Value)
 	{
-	case INT32_MAX:
-		GameOver();
-		MyText = FText::FromString("X");
-		break;
-	default:		
-		ClearMeAndEmptyNeighbours();		
-		break;
+		case INT32_MAX:
+			GameOver();
+			MyText = FText::FromString("X");
+			break;
+		default:		
+			ClearMeAndEmptyNeighbours();		
+			break;
 	}
 
 	UE_LOG(LogTemp, Error, TEXT("[%i;%i] value is %d"),Column,Row,Value);
@@ -35,6 +35,7 @@ void SMineButton::Press()
 void SMineButton::ClearMeAndEmptyNeighbours()
 {
 	MyText = FText::FromString(FString::FromInt(Value));
+	IsHidden = false;
 
 	if (Value != 0)
 	{
@@ -43,10 +44,12 @@ void SMineButton::ClearMeAndEmptyNeighbours()
 
 	for (int32 i = 0; i < Neighbours.Num(); i++)
 	{
-		const SMineButton& NeighbourBomb = Neighbours[i].Get();
+		SMineButton& NeighbourBomb = Neighbours[i].Get();
 
-		Neighbours[i].Get().ClearMeAndEmptyNeighbours();
-
+		if (NeighbourBomb.IsHidden)
+		{
+			NeighbourBomb.ClearMeAndEmptyNeighbours();
+		}
 	}
 }
 
