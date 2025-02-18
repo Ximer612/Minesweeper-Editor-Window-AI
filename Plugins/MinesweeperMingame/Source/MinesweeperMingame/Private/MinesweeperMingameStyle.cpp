@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright 2025, Ximer - Marco Baldini, All rights reserved
 
 #include "MinesweeperMingameStyle.h"
 #include "Styling/SlateStyleRegistry.h"

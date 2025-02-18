@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright 2025, Ximer - Marco Baldini, All rights reserved
 
 #include "MinesweeperMingame.h"
 #include "MinesweeperMingameStyle.h"
@@ -208,6 +208,8 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 					{
 						const TArray<TSharedPtr<FJsonValue>>& GridArray = JsonParsed->GetArrayField(TEXT("grid"));
 
+						MinesweeperMaxRow = GridArray[0]->AsArray().Num();
+
 						for (size_t y = 0; y < GridArray.Num(); y++)
 						{
 							const TArray<TSharedPtr<FJsonValue>>& JsonRow = GridArray[y]->AsArray();
@@ -272,9 +274,10 @@ void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InSt
 
 	MinesweeperField.Add(CellValue);
 
-	TSharedRef<SMyObject> Button = SNew(SMyObject);
+	TSharedRef<SMineButton> Button = SNew(SMineButton);
 
-	MinesButtons.Add(Button);
+	int32 MyArrayIndex = MinesButtons.Add(Button);
+	UE_LOG(LogTemp, Warning, TEXT("My index is %d"), MyArrayIndex);
 
 	auto NewScrollBoxSlot = MinesGridPanel->AddSlot(InColumn, InRow);
 	NewScrollBoxSlot.AttachWidget(Button);
@@ -283,7 +286,28 @@ void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InSt
 
 	Button->Value = CellValue;
 	Button->Column = InColumn;
-	Button->Row = InRow;
+	Button->Row = InRow;	
+
+	//add up and left bomb to the neighours
+	//if not at left border
+	if (MyArrayIndex % MinesweeperMaxRow != 0 && MinesButtons.IsValidIndex(MyArrayIndex - 1) )
+	{
+		const TSharedRef<SMineButton> OtherMine = MinesButtons[MyArrayIndex - 1];
+		Button->AddNeighbour(OtherMine);
+
+		UE_LOG(LogTemp, Warning, TEXT("Added to %d his neighbour at %d"), MyArrayIndex, MyArrayIndex - 1);
+
+	}
+
+
+	if (MinesButtons.IsValidIndex(MyArrayIndex - 3))
+	{
+		const TSharedRef<SMineButton> OtherMine = MinesButtons[MyArrayIndex - 3];
+		Button->AddNeighbour(OtherMine);
+
+		UE_LOG(LogTemp, Warning, TEXT("Added to %d his neighbour at %d"), MyArrayIndex, MyArrayIndex - 3);
+	}
+
 }
 
 void FMinesweeperMingameModule::AddTextBlockToScrollBox(const FText& InText, const FSlateColor& InColor)

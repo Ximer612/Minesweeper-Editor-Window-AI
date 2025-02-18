@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright 2025, Ximer - Marco Baldini, All rights reserved
 
 #pragma once
 
@@ -6,7 +6,7 @@
 
 class FToolBarBuilder;
 class FMenuBuilder;
-class SMyObject;
+class SMineButton;
 
 class FMinesweeperMingameModule : public IModuleInterface
 {
@@ -39,12 +39,12 @@ private:
 	TSharedPtr<SScrollBox> ChatScrollBox;
 	TSharedPtr<SGridPanel> MinesGridPanel;
 
-	TArray<TSharedRef<SMyObject>> MinesButtons;
+	TArray<TSharedRef<SMineButton>> MinesButtons;
 	TArray<int32> MinesweeperField;
 	int32 MinesweeperMines;
+	int32 MinesweeperMaxRow;
 
 	FText PromptToSend;
 	bool bIsAiThinking;
 	FOnClicked OnClickedOnMinesweeperButton;
-
 };

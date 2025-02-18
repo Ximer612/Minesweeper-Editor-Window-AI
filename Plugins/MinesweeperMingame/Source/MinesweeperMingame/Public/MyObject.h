@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 2025, Ximer - Marco Baldini, All rights reserved
 
 #pragma once
 
@@ -8,7 +8,7 @@
 /**
  * 
  */
-class MINESWEEPERMINGAME_API SMyObject : public SButton
+class MINESWEEPERMINGAME_API SMineButton : public SButton
 {
 public:
 
@@ -20,7 +20,15 @@ public:
 	int32 Column;
 	int32 Row;
 	FString DefaultStringValue = " ";
-	//FText* MyText;
+	FText MyText;
+	TArray<TSharedRef<SMineButton>> Neighbours;
 
 	virtual void Press() override;
+
+	void ClearMeAndEmptyNeighbours();
+	void GameOver();
+	void AddNeighbour(TSharedRef<SMineButton> NeighbourMine);
+	FText GetText() const;
+
+	bool operator==(const SMineButton& Other);
 };
