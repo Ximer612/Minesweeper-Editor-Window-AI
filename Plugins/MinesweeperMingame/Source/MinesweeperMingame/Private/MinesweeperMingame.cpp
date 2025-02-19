@@ -15,7 +15,7 @@
 #include "PythonResult.h"
 #include "Json.h"
 
-#include "MyObject.h"
+#include "SMineButton.h"
 
 static const FName MinesweeperMingameTabName("MinesweeperMingame");
 

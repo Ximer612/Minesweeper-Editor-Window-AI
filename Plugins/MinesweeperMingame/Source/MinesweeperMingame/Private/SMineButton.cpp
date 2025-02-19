@@ -1,7 +1,7 @@
 // Copyright 2025, Ximer - Marco Baldini, All rights reserved
 
 
-#include "MyObject.h"
+#include "SMineButton.h"
 
 void SMineButton::Construct(const FArguments& InArgs)
 {
