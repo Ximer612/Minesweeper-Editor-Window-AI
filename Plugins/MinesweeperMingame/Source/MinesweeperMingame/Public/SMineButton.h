@@ -15,9 +15,13 @@ class MINESWEEPERMINGAME_API SMineButton : public SButton
 {
 public:
 
-	TSharedPtr<STextBlock> TextBlock;
-
 	void Construct(const FArguments& InArgs);
+	virtual void Press() override;
+
+	bool operator==(const SMineButton& Other);
+
+private:
+	TSharedPtr<STextBlock> TextBlock;
 
 	int32 Value;
 	int32 Column;
@@ -27,15 +31,12 @@ public:
 	TArray<TSharedRef<SMineButton>> Neighbours;
 	bool IsHidden = true;
 
-	virtual void Press() override;
-
 	void ClearMeAndEmptyNeighbours();
 	void GameOver();
 	void AddNeighbour(TSharedRef<SMineButton> NeighbourMine);
 	FText GetText() const;
 
-	bool operator==(const SMineButton& Other);
-
 	FOnGameOver OnGameOver;
 
+	friend class FMinesweeperMingameModule;
 };

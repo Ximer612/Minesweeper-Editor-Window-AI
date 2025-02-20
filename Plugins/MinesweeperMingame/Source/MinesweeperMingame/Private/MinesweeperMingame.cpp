@@ -104,21 +104,13 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 						.VAlign(VAlign_Top)
 						.AutoHeight()
 						[
-							SNew(SButton)
-								.HAlign(HAlign_Fill)
-								.VAlign(VAlign_Fill)
-								.OnClicked_Raw(this, &FMinesweeperMingameModule::SendPrompt, true)
-								[
-									SNew(STextBlock)
-										.Text(LOCTEXT("SendAgainLastPromptAI", "Send again last prompt!"))
-								]
-						]
-						+ SVerticalBox::Slot()
-						.HAlign(HAlign_Right)
-						.VAlign(VAlign_Top)
-						.AutoHeight()
-						[
-							SNew(SButton)
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.HAlign(HAlign_Left)
+							.VAlign(VAlign_Fill)
+							[
+								SNew(SButton)
 								.HAlign(HAlign_Fill)
 								.VAlign(VAlign_Fill)
 								.OnClicked_Raw(this, &FMinesweeperMingameModule::ClearMinesweeperMinigame)
@@ -126,6 +118,22 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 									SNew(STextBlock)
 										.Text(LOCTEXT("MinesweeperClearGameButton", "Clear game!"))
 								]
+							]
+							+SHorizontalBox::Slot()
+							.AutoWidth()
+							.HAlign(HAlign_Right)
+							.VAlign(VAlign_Fill)
+							[
+								SNew(SButton)
+								.HAlign(HAlign_Fill)
+								.VAlign(VAlign_Fill)
+								.OnClicked_Raw(this, &FMinesweeperMingameModule::SendPrompt, true)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("SendAgainLastPromptAI", "Send again last prompt!"))
+								]
+							]
+
 						]
 						+SVerticalBox::Slot()
 						.HAlign(HAlign_Fill)
@@ -361,14 +369,6 @@ void FMinesweeperMingameModule::RegisterMenus()
 {
 	// Owner will be used for cleanup in call to UToolMenus::UnregisterOwner
 	FToolMenuOwnerScoped OwnerScoped(this);
-
-	{
-		UToolMenu* Menu = UToolMenus::Get()->ExtendMenu("LevelEditor.MainMenu.Window");
-		{
-			FToolMenuSection& Section = Menu->FindOrAddSection("WindowLayout");
-			Section.AddMenuEntryWithCommandList(FMinesweeperMingameCommands::Get().OpenPluginWindow, PluginCommands);
-		}
-	}
 
 	{
 		UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar.PlayToolBar");

@@ -72,6 +72,6 @@ class PythonBridgeImplementation(unreal.PythonBridge):
     @unreal.ufunction(override=True)
     def ask_to_ai_python(self, prompt) -> unreal.PythonResult:
         print("I'm thinking about your prompt: \""+prompt+"\"...")
-        return unreal.PythonResult("Here is a valid 5x5 Minesweeper grid with 2 mines, The grid follows Minesweeper's rules: mines ('X') are placed, and surrounding numbers indicate how many mines are adjacent. Let me know if you need modifications! 🚀 ​",'{  "grid": [    [0, 0, 0, 1, "X"],    [0, 0, 0, 1, 1],    [0, 1, 1, 1, 0],    [0, 1, "X", 1, 0],    [0, 1, 1, 1, 0]  ]}')
+        #return unreal.PythonResult("Here is a valid 5x5 Minesweeper grid with 2 mines, The grid follows Minesweeper's rules: mines ('X') are placed, and surrounding numbers indicate how many mines are adjacent. Let me know if you need modifications! 🚀 ​",'{  "grid": [    [0, 0, 0, 1, "X"],    [0, 0, 0, 1, 1],    [0, 1, 1, 1, 0],    [0, 1, "X", 1, 0],    [0, 1, 1, 1, 0]  ]}')
         response = ask_to_ai_and_parse_json(prompt,self.ai_model,self.ai_url,self.ai_stream)
         return unreal.PythonResult(response[0],response[1])

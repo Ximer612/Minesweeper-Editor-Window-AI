@@ -23,11 +23,14 @@ public:
 	FPythonResult AskToAIPython(const FString& Prompt) const;
 
 	UPROPERTY(BlueprintReadWrite, Category = Python)
-	FString AIModel = "codeup:latest";
+	FString AIModel = "phi4:latest";
+
 	UPROPERTY(BlueprintReadWrite, Category = Python)
 	FString AIUrl = "http://localhost:11434/api/generate";
+
 	UPROPERTY(BlueprintReadWrite, Category = Python)
 	bool bAIStream = false;
+
 	UPROPERTY(BlueprintReadWrite,Category = Python)
 	bool bIsAiThinking;
 };
