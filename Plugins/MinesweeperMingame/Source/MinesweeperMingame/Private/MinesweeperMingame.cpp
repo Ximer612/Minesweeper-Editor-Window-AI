@@ -178,16 +178,19 @@ void FMinesweeperMingameModule::PluginButtonClicked()
 
 FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 {
+	//getting the python implementation of this class
 	if (!PythonBridge)
 	{
 		PythonBridge = UPythonBridge::Get();
 	}
 
+	//if the ai is thinking cannot sent another prompt
 	if (PythonBridge->bIsAiThinking)
 	{
 		return FReply::Handled();
 	}
 
+	//if 
 	if (!bResendLast && !SendPromptEditableTextBox->GetText().IsEmpty())
 	{
 		PromptToSend = SendPromptEditableTextBox->GetText();
@@ -207,6 +210,7 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 			UE_LOG(LogTemp, Warning, TEXT("Response: %s"), *response.Response);
 			UE_LOG(LogTemp, Warning, TEXT("Json response: %s"), *response.JsonResponse);
 
+			//returning into the game thread to access to UObjects
 			FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([&response,this]() {
 				
 				AddTextBlockToScrollBox(response.Response, FColor::Red, "AI");
@@ -214,6 +218,8 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 				//check if response is in a correct format
 				if (response.JsonResponse != "none" && response.JsonResponse != "invalid")
 				{
+					ClearMinesweeperMinigame();
+
 					AddTextBlockToScrollBox(response.JsonResponse, FColor::Green, "JSON");
 
 					//generate field
@@ -280,6 +286,8 @@ FReply FMinesweeperMingameModule::ClearMinesweeperMinigame()
 
 void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InString, const int32& InColumn, const int32& InRow)
 {
+	TSharedRef<SMineButton> Button = SNew(SMineButton);
+
 	int32 CellValue = 0;
 
 	if (FCString::IsNumeric(*InString))
@@ -291,11 +299,11 @@ void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InSt
 		// if not a number then is a bomb!
 		CellValue = INT32_MAX;
 		MinesweeperMines++;
+		Button->OnGameOver.BindRaw(this, &FMinesweeperMingameModule::MinesweeperGameOver);
 	}
 
 	MinesweeperField.Add(CellValue);
 
-	TSharedRef<SMineButton> Button = SNew(SMineButton);
 
 	int32 MyArrayIndex = MinesButtons.Add(Button);
 
@@ -316,10 +324,20 @@ void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InSt
 		Button->AddNeighbour(OtherMine);
 	}
 
-	if (MinesButtons.IsValidIndex(MyArrayIndex - 3))
+	if (MinesButtons.IsValidIndex(MyArrayIndex - MinesweeperMaxRow))
 	{
-		const TSharedRef<SMineButton> OtherMine = MinesButtons[MyArrayIndex - 3];
+		const TSharedRef<SMineButton> OtherMine = MinesButtons[MyArrayIndex - MinesweeperMaxRow];
 		Button->AddNeighbour(OtherMine);
+	}
+}
+
+void FMinesweeperMingameModule::MinesweeperGameOver()
+{
+	AddTextBlockToScrollBox("You lose! Ask me again for another match :)",FColor::White,"MINESWEEPER");
+
+	for (size_t i = 0; i < MinesButtons.Num(); i++)
+	{
+		MinesButtons[i].Get().SetEnabled(false);
 	}
 }
 

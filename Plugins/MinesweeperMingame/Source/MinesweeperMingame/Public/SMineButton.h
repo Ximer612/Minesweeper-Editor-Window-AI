@@ -2,8 +2,11 @@
 
 #pragma once
 
+DECLARE_DELEGATE(FOnGameOver)
+
 #include "SlateBasics.h"
 #include "SlateExtras.h"
+
 
 /**
  * 
@@ -32,4 +35,7 @@ public:
 	FText GetText() const;
 
 	bool operator==(const SMineButton& Other);
+
+	FOnGameOver OnGameOver;
+
 };

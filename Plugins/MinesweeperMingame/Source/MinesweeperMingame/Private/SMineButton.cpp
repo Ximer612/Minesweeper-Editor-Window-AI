@@ -34,7 +34,6 @@ void SMineButton::Press()
 			break;
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("[%i;%i] value is %d"),Column,Row,Value);
 }
 
 void SMineButton::ClearMeAndEmptyNeighbours()
@@ -60,6 +59,7 @@ void SMineButton::ClearMeAndEmptyNeighbours()
 
 void SMineButton::GameOver()
 {
+	OnGameOver.ExecuteIfBound();
 	UE_LOG(LogTemp, Error, TEXT("GAME OVER!"));
 }
 

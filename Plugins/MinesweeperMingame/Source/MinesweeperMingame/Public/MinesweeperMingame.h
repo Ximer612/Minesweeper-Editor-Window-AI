@@ -4,6 +4,7 @@
 
 #include "Modules/ModuleManager.h"
 
+
 class FToolBarBuilder;
 class FMenuBuilder;
 class SMineButton;
@@ -25,6 +26,7 @@ public:
 	void SendLastPrompt(const FText& InText, ETextCommit::Type CommitType);
 	FReply ClearMinesweeperMinigame();
 	void AddButtonMinesweeperMinigame(const FString& InString, const int32& InColumn, const int32& InRow);
+	void MinesweeperGameOver();
 	void AddTextBlockToScrollBox(const FString& InString, const FSlateColor& InColor, const FString& SpeakerName);
 
 private:
@@ -48,4 +50,5 @@ private:
 	FText PromptToSend;
 	
 	UPythonBridge* PythonBridge;
+
 };
