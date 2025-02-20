@@ -22,4 +22,12 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = Python)
 	FPythonResult AskToAIPython(const FString& Prompt) const;
 
+	UPROPERTY(BlueprintReadWrite, Category = Python)
+	FString AIModel = "codeup:latest";
+	UPROPERTY(BlueprintReadWrite, Category = Python)
+	FString AIUrl = "http://localhost:11434/api/generate";
+	UPROPERTY(BlueprintReadWrite, Category = Python)
+	bool bAIStream = false;
+	UPROPERTY(BlueprintReadWrite,Category = Python)
+	bool bIsAiThinking;
 };

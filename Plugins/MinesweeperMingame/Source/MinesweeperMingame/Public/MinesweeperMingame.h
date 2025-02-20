@@ -7,6 +7,7 @@
 class FToolBarBuilder;
 class FMenuBuilder;
 class SMineButton;
+class UPythonBridge;
 
 class FMinesweeperMingameModule : public IModuleInterface
 {
@@ -22,9 +23,9 @@ public:
 	FReply SendPrompt(bool bResendLast = false);
 
 	void SendLastPrompt(const FText& InText, ETextCommit::Type CommitType);
-	void ClearMinesweeperMinigame();
+	FReply ClearMinesweeperMinigame();
 	void AddButtonMinesweeperMinigame(const FString& InString, const int32& InColumn, const int32& InRow);
-	void AddTextBlockToScrollBox(const FText& InText, const FSlateColor& InColor);
+	void AddTextBlockToScrollBox(const FString& InString, const FSlateColor& InColor, const FString& SpeakerName);
 
 private:
 
@@ -45,6 +46,6 @@ private:
 	int32 MinesweeperMaxRow;
 
 	FText PromptToSend;
-	bool bIsAiThinking;
-	FOnClicked OnClickedOnMinesweeperButton;
+	
+	UPythonBridge* PythonBridge;
 };

@@ -99,7 +99,7 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 					.VAlign(VAlign_Fill)
 					[
 						SNew(SVerticalBox)
-						+SVerticalBox::Slot()
+						+ SVerticalBox::Slot()
 						.HAlign(HAlign_Right)
 						.VAlign(VAlign_Top)
 						.AutoHeight()
@@ -110,7 +110,21 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 								.OnClicked_Raw(this, &FMinesweeperMingameModule::SendPrompt, true)
 								[
 									SNew(STextBlock)
-									.Text(LOCTEXT("SendAgainLastPromptAI", "Send again last prompt!"))
+										.Text(LOCTEXT("SendAgainLastPromptAI", "Send again last prompt!"))
+								]
+						]
+						+ SVerticalBox::Slot()
+						.HAlign(HAlign_Right)
+						.VAlign(VAlign_Top)
+						.AutoHeight()
+						[
+							SNew(SButton)
+								.HAlign(HAlign_Fill)
+								.VAlign(VAlign_Fill)
+								.OnClicked_Raw(this, &FMinesweeperMingameModule::ClearMinesweeperMinigame)
+								[
+									SNew(STextBlock)
+										.Text(LOCTEXT("MinesweeperClearGameButton", "Clear game!"))
 								]
 						]
 						+SVerticalBox::Slot()
@@ -164,11 +178,15 @@ void FMinesweeperMingameModule::PluginButtonClicked()
 
 FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 {
-	if (bIsAiThinking)
+	if (!PythonBridge)
+	{
+		PythonBridge = UPythonBridge::Get();
+	}
+
+	if (PythonBridge->bIsAiThinking)
 	{
 		return FReply::Handled();
 	}
-
 
 	if (!bResendLast && !SendPromptEditableTextBox->GetText().IsEmpty())
 	{
@@ -176,30 +194,27 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 		SendPromptEditableTextBox->SetText(FText::GetEmpty());
 	}
 
-	AddTextBlockToScrollBox(FText::FromString("<Me>: " + PromptToSend.ToString()), FColor::Cyan);
+	AddTextBlockToScrollBox(PromptToSend.ToString(), FColor::Cyan, "USER");
 
 	//wait for response in another thread
 	AsyncThread([this]()
 		{
-			bIsAiThinking = true;
+			PythonBridge->bIsAiThinking = true;
 
-			UPythonBridge* bridge = UPythonBridge::Get();
 			//get response
-			FPythonResult response = bridge->AskToAIPython(PromptToSend.ToString());
+			FPythonResult response = PythonBridge->AskToAIPython(PromptToSend.ToString());
 
 			UE_LOG(LogTemp, Warning, TEXT("Response: %s"), *response.Response);
 			UE_LOG(LogTemp, Warning, TEXT("Json response: %s"), *response.JsonResponse);
 
 			FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([&response,this]() {
 				
-				FText ResponseText = FText::FromString("<AI>: " + response.Response);
-				AddTextBlockToScrollBox(ResponseText, FColor::Red);
+				AddTextBlockToScrollBox(response.Response, FColor::Red, "AI");
 
 				//check if response is in a correct format
 				if (response.JsonResponse != "none" && response.JsonResponse != "invalid")
 				{
-					FText ResponseJson = FText::FromString("<AI>: " + response.JsonResponse);
-					AddTextBlockToScrollBox(ResponseJson, FColor::Magenta);
+					AddTextBlockToScrollBox(response.JsonResponse, FColor::Green, "JSON");
 
 					//generate field
 					TSharedPtr<FJsonObject> JsonParsed;
@@ -221,13 +236,17 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 						}
 
 					}
+					else
+					{
+						UE_LOG(LogTemp, Warning, TEXT("Unable to parse Json!"));
+					}
 				}
 
 				}, TStatId(), nullptr, ENamedThreads::GameThread);
 
 			Task->Wait();
 
-			bIsAiThinking = false;
+			PythonBridge->bIsAiThinking = false;
 
 		});
 
@@ -244,7 +263,7 @@ void FMinesweeperMingameModule::SendLastPrompt(const FText& InText, ETextCommit:
 	SendPrompt();
 }
 
-void FMinesweeperMingameModule::ClearMinesweeperMinigame()
+FReply FMinesweeperMingameModule::ClearMinesweeperMinigame()
 {
 	for (size_t i = 0; i < MinesButtons.Num(); i++)
 	{
@@ -255,6 +274,8 @@ void FMinesweeperMingameModule::ClearMinesweeperMinigame()
 	MinesGridPanel->ClearChildren();
 	MinesweeperField.Empty();
 	MinesweeperMines = 0;
+
+	return FReply::Handled();
 }
 
 void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InString, const int32& InColumn, const int32& InRow)
@@ -277,7 +298,6 @@ void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InSt
 	TSharedRef<SMineButton> Button = SNew(SMineButton);
 
 	int32 MyArrayIndex = MinesButtons.Add(Button);
-	UE_LOG(LogTemp, Warning, TEXT("My index is %d"), MyArrayIndex);
 
 	auto NewScrollBoxSlot = MinesGridPanel->AddSlot(InColumn, InRow);
 	NewScrollBoxSlot.AttachWidget(Button);
@@ -294,26 +314,19 @@ void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InSt
 	{
 		const TSharedRef<SMineButton> OtherMine = MinesButtons[MyArrayIndex - 1];
 		Button->AddNeighbour(OtherMine);
-
-		UE_LOG(LogTemp, Warning, TEXT("Added to %d his neighbour at %d"), MyArrayIndex, MyArrayIndex - 1);
-
 	}
-
 
 	if (MinesButtons.IsValidIndex(MyArrayIndex - 3))
 	{
 		const TSharedRef<SMineButton> OtherMine = MinesButtons[MyArrayIndex - 3];
 		Button->AddNeighbour(OtherMine);
-
-		UE_LOG(LogTemp, Warning, TEXT("Added to %d his neighbour at %d"), MyArrayIndex, MyArrayIndex - 3);
 	}
-
 }
 
-void FMinesweeperMingameModule::AddTextBlockToScrollBox(const FText& InText, const FSlateColor& InColor)
+void FMinesweeperMingameModule::AddTextBlockToScrollBox(const FString& InText, const FSlateColor& InColor, const FString& SpeakerName)
 {
 	TSharedRef<STextBlock> NewChatText = SNew(STextBlock)
-										.Text(InText)
+										.Text(FText::FromString("<"+ SpeakerName+">: "+InText))
 										.ColorAndOpacity(InColor)
 										.AutoWrapText(true);
 

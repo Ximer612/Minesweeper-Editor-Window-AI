@@ -2,7 +2,7 @@ import unreal
 import requests
 import json
 
-def send_rest_call(prompt, model="gemma2:latest", url="http://localhost:11434/api/generate",stream=False) -> str:
+def send_rest_call(prompt, model, url,stream) -> str:
 
   body_data = {
     "model" : model,
@@ -52,8 +52,8 @@ def find_json_in_text(text:str):
 
   return json_result
 
-def ask_to_ai(prompt) -> tuple[str, str]:
-  response = send_rest_call(prompt)
+def ask_to_ai_and_parse_json(prompt,model,url,stream) -> tuple[str, str]:
+  response = send_rest_call(prompt,model,url,stream)
 
   #checks if is a working json
   json_result = find_json_in_text(response)
@@ -72,6 +72,6 @@ class PythonBridgeImplementation(unreal.PythonBridge):
     @unreal.ufunction(override=True)
     def ask_to_ai_python(self, prompt) -> unreal.PythonResult:
         print("I'm thinking about your prompt: \""+prompt+"\"...")
-        #return unreal.PythonResult("TEST RESPONSE",'{ "grid": [  [1, "X", 1],  [2, 2, 1],  ["X", 1, 0] ]}')
-        response = ask_to_ai(prompt)
+        return unreal.PythonResult("Here is a valid 5x5 Minesweeper grid with 2 mines, The grid follows Minesweeper's rules: mines ('X') are placed, and surrounding numbers indicate how many mines are adjacent. Let me know if you need modifications! 🚀 ​",'{  "grid": [    [0, 0, 0, 1, "X"],    [0, 0, 0, 1, 1],    [0, 1, 1, 1, 0],    [0, 1, "X", 1, 0],    [0, 1, 1, 1, 0]  ]}')
+        response = ask_to_ai_and_parse_json(prompt,self.ai_model,self.ai_url,self.ai_stream)
         return unreal.PythonResult(response[0],response[1])

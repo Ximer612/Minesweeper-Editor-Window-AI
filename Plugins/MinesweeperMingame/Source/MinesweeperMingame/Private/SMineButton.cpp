@@ -18,6 +18,11 @@ void SMineButton::Construct(const FArguments& InArgs)
 
 void SMineButton::Press()
 {
+	if (!IsHidden)
+	{
+		return;
+	}
+
 	switch (Value)
 	{
 		case INT32_MAX:
