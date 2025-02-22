@@ -190,24 +190,29 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 	if (!PythonBridge)
 	{
 		PythonBridge = UPythonBridge::Get();
+		PythonBridge->OnUpdatedText.BindRaw(this, &FMinesweeperMingameModule::ScrollToEndChatBox);
 	}
 
 	//if the ai is thinking cannot sent another prompt
-	if (PythonBridge->bIsAiThinking)
+	if (PythonBridge->bIsAiThinking || (bResendLast && PromptToSend.IsEmpty()) || (!bResendLast && SendPromptEditableTextBox->GetText().IsEmpty()))
 	{
 		return FReply::Handled();
 	}
 
-	//if 
-	if (!bResendLast && !SendPromptEditableTextBox->GetText().IsEmpty())
+	//if not pressend "send again last prompt"
+	if (!bResendLast)
 	{
 		PromptToSend = SendPromptEditableTextBox->GetText();
 		SendPromptEditableTextBox->SetText(FText::GetEmpty());
 	}
 
-	AddTextBlockToScrollBox(PromptToSend.ToString(), FColor::Cyan, "USER");
+	//add user text block
+	AddTextBlockToScrollBox(PromptToSend.ToString(), FColor::Cyan, UserSpeakerText);
 
-	//wait for response in another thread
+	//add ai stream text block
+	PythonBridge->ChatTextBlock = AddTextBlockToScrollBox("", FColor::White, AISpeakerText).ToSharedPtr();
+
+	//wait for ai response in another thread
 	AsyncThread([this]()
 		{
 			PythonBridge->bIsAiThinking = true;
@@ -215,20 +220,22 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 			//get response
 			FPythonResult response = PythonBridge->AskToAIPython(PromptToSend.ToString());
 
-			UE_LOG(LogTemp, Warning, TEXT("Response: %s"), *response.Response);
-			UE_LOG(LogTemp, Warning, TEXT("Json response: %s"), *response.JsonResponse);
-
 			//returning into the game thread to access to UObjects
 			FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady([&response,this]() {
-				
-				AddTextBlockToScrollBox(response.Response, FColor::Red, "AI");
+
+				if (response.bError)
+				{
+					ChatScrollBox->RemoveSlot(PythonBridge->ChatTextBlock.ToSharedRef());
+					AddTextBlockToScrollBox(response.Response, FColor::Red, ErrorSpeakerText);
+					return;
+				}
 
 				//check if response is in a correct format
 				if (response.JsonResponse != "none" && response.JsonResponse != "invalid")
 				{
 					ClearMinesweeperMinigame();
 
-					AddTextBlockToScrollBox(response.JsonResponse, FColor::Green, "JSON");
+					AddTextBlockToScrollBox(response.JsonResponse, FColor::Green, JsonSpeakerText);
 
 					//generate field
 					TSharedPtr<FJsonObject> JsonParsed;
@@ -249,6 +256,7 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 							}
 						}
 
+						//TODO: check if the grid has correct values
 					}
 					else
 					{
@@ -269,6 +277,7 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 
 void FMinesweeperMingameModule::SendLastPrompt(const FText& InText, ETextCommit::Type CommitType)
 {
+	//if not pressed enter return
 	if(CommitType != ETextCommit::Type::OnEnter)
 	{
 		return;
@@ -279,12 +288,14 @@ void FMinesweeperMingameModule::SendLastPrompt(const FText& InText, ETextCommit:
 
 FReply FMinesweeperMingameModule::ClearMinesweeperMinigame()
 {
-	for (size_t i = 0; i < MinesButtons.Num(); i++)
+	for (size_t i = 0; i < MinesweeperButtons.Num(); i++)
 	{
-		TSharedRef<SButton> Button = MinesButtons[i];
+		TSharedRef<SButton> Button = MinesweeperButtons[i];
 		Button->SetVisibility(EVisibility::Collapsed);
 	}
 
+	MinesweeperBombButtons.Empty();
+	MinesweeperButtons.Empty();
 	MinesGridPanel->ClearChildren();
 	MinesweeperField.Empty();
 	MinesweeperMines = 0;
@@ -308,12 +319,12 @@ void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InSt
 		CellValue = INT32_MAX;
 		MinesweeperMines++;
 		Button->OnGameOver.BindRaw(this, &FMinesweeperMingameModule::MinesweeperGameOver);
+		MinesweeperBombButtons.Add(Button);
 	}
 
 	MinesweeperField.Add(CellValue);
 
-
-	int32 MyArrayIndex = MinesButtons.Add(Button);
+	int32 MyArrayIndex = MinesweeperButtons.Add(Button);
 
 	auto NewScrollBoxSlot = MinesGridPanel->AddSlot(InColumn, InRow);
 	NewScrollBoxSlot.AttachWidget(Button);
@@ -326,43 +337,55 @@ void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InSt
 
 	//add up and left bomb to the neighours
 	//if not at left border
-	if (MyArrayIndex % MinesweeperMaxRow != 0 && MinesButtons.IsValidIndex(MyArrayIndex - 1) )
+	if (MyArrayIndex % MinesweeperMaxRow != 0 && MinesweeperButtons.IsValidIndex(MyArrayIndex - 1) )
 	{
-		const TSharedRef<SMineButton> OtherMine = MinesButtons[MyArrayIndex - 1];
+		const TSharedRef<SMineButton> OtherMine = MinesweeperButtons[MyArrayIndex - 1];
 		Button->AddNeighbour(OtherMine);
 	}
 
-	if (MinesButtons.IsValidIndex(MyArrayIndex - MinesweeperMaxRow))
+	if (MinesweeperButtons.IsValidIndex(MyArrayIndex - MinesweeperMaxRow))
 	{
-		const TSharedRef<SMineButton> OtherMine = MinesButtons[MyArrayIndex - MinesweeperMaxRow];
+		const TSharedRef<SMineButton> OtherMine = MinesweeperButtons[MyArrayIndex - MinesweeperMaxRow];
 		Button->AddNeighbour(OtherMine);
 	}
 }
 
 void FMinesweeperMingameModule::MinesweeperGameOver()
 {
-	AddTextBlockToScrollBox("You lose! Ask me again for another match :)",FColor::White,"MINESWEEPER");
+	AddTextBlockToScrollBox(LOCTEXT("GameOverMinesweeper","You lose! Ask me again for another match :)").ToString(), FColor::White, AISpeakerText);
 
-	for (size_t i = 0; i < MinesButtons.Num(); i++)
+	for (size_t i = 0; i < MinesweeperBombButtons.Num(); i++)
 	{
-		MinesButtons[i].Get().SetEnabled(false);
+		MinesweeperBombButtons[i].Get().MyText = FText::FromString("X");
+	}
+
+	for (size_t i = 0; i < MinesweeperButtons.Num(); i++)
+	{
+		MinesweeperButtons[i].Get().SetEnabled(false);
 	}
 }
 
-void FMinesweeperMingameModule::AddTextBlockToScrollBox(const FString& InText, const FSlateColor& InColor, const FString& SpeakerName)
+void FMinesweeperMingameModule::ScrollToEndChatBox()
 {
-	TSharedRef<STextBlock> NewChatText = SNew(STextBlock)
-										.Text(FText::FromString("<"+ SpeakerName+">: "+InText))
+	ChatScrollBox->ScrollToEnd();
+}
+
+TSharedRef<STextBlock> FMinesweeperMingameModule::AddTextBlockToScrollBox(const FString& InText, const FSlateColor& InColor, const FString& SpeakerName)
+{
+	TSharedRef<STextBlock> NewChatTextBlock = SNew(STextBlock)
+										.Text(FText::FromString("<" + SpeakerName + ">: " + InText))
 										.ColorAndOpacity(InColor)
 										.AutoWrapText(true);
 
 	auto NewScrollBoxSlot = ChatScrollBox->AddSlot();
-	NewScrollBoxSlot.AttachWidget(NewChatText);
+	NewScrollBoxSlot.AttachWidget(NewChatTextBlock);
 	NewScrollBoxSlot.HAlign(HAlign_Fill);
 	NewScrollBoxSlot.VAlign(VAlign_Fill);
 	NewScrollBoxSlot.AutoSize();
 
-	ChatScrollBox->ScrollToEnd();
+	ScrollToEndChatBox();
+
+	return NewChatTextBlock;
 }
 
 void FMinesweeperMingameModule::RegisterMenus()

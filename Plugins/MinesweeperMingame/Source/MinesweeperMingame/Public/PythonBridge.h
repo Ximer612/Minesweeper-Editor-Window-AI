@@ -7,6 +7,8 @@
 #include "PythonResult.h"
 #include "PythonBridge.generated.h"
 
+DECLARE_DELEGATE(FOnUpdatedText)
+
 /**
  * 
  */
@@ -22,15 +24,26 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = Python)
 	FPythonResult AskToAIPython(const FString& Prompt) const;
 
+	UFUNCTION(BlueprintCallable, Category = Python)
+	void UpdateTextBlock(const FString& NewString) const;
+
+
+public:
+
 	UPROPERTY(BlueprintReadWrite, Category = Python)
-	FString AIModel = "phi4:latest";
+	FString AIModel = "unrealAI:latest";
 
 	UPROPERTY(BlueprintReadWrite, Category = Python)
 	FString AIUrl = "http://localhost:11434/api/generate";
 
 	UPROPERTY(BlueprintReadWrite, Category = Python)
-	bool bAIStream = false;
+	bool bAIStream = true;
 
 	UPROPERTY(BlueprintReadWrite,Category = Python)
 	bool bIsAiThinking;
+
+//private:
+	TSharedPtr<STextBlock> ChatTextBlock;
+
+	FOnUpdatedText OnUpdatedText;
 };

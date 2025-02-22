@@ -1,12 +1,14 @@
+import time
 import unreal
 import requests
 import json
 
-def send_rest_call(prompt, model, url,stream) -> str:
+#send rest call to the wanted ai model
+def send_rest_call(prompt, model, url) -> tuple[str, bool]:
 
   body_data = {
     "model" : model,
-    "stream": stream,
+    "stream": False,
     "prompt" : prompt    
   }
 
@@ -15,15 +17,16 @@ def send_rest_call(prompt, model, url,stream) -> str:
   try:
     response_data = requests.post(url, payload)
   except:
-    return "Unable to connect to "+url
+    return "Unable to connect to "+url, True
 
   json_response_data = json.loads(response_data.content)
 
   if "error" in json_response_data:
-    return json_response_data["error"]
+    return json_response_data["error"], True
 
-  return json_response_data["response"]
+  return json_response_data["response"], False
 
+#checks if a json is valid
 def is_valid_json(myjson):
   try:
     json.loads(myjson)
@@ -31,7 +34,7 @@ def is_valid_json(myjson):
     return False
   return True
 
-#working with gemma2
+#working with ai that send json code between ```
 def find_json_in_text(text:str):
 
   text = text.replace('\n','')
@@ -52,26 +55,69 @@ def find_json_in_text(text:str):
 
   return json_result
 
-def ask_to_ai_and_parse_json(prompt,model,url,stream) -> tuple[str, str]:
-  response = send_rest_call(prompt,model,url,stream)
+def ask_to_ai_and_parse_json(prompt,model,url) -> tuple[str, str, bool]:
+  response, has_error = send_rest_call(prompt,model,url)
+
+  if has_error:
+    return response,"none",True
 
   #checks if is a working json
   json_result = find_json_in_text(response)
 
   if json_result == "none":
-    return response,"none"
+    return response,"none",False
 
-  if is_valid_json(json_result):
-    return response,json_result
-  else:
-    return response,"invalid"
+  return response, json_result if is_valid_json(json_result) else "invalid", False #False because the response was successfully
+
+def get_stream(prompt, model, url, python_bridge : unreal.PythonBridge):
+
+  #checks if url is on
+    try:
+        requests.get(url)
+    except Exception as e:
+        unreal.log_error(e)
+        return str(e),True
+  
+    s = requests.Session()
+
+    body_data = {
+        "model" : model,
+        "stream": True,
+        "prompt" : prompt    
+    }
+
+    payload = json.dumps(body_data)
+    full_response = ""
+
+    with s.post(url, data=payload, headers=None, stream=True) as resp:
+
+      if resp.status_code != 200:
+        full_response = "Error trying to connect with " + url
+        unreal.log_error(full_response)
+        return full_response, True
+
+      for line in resp.iter_lines():
+          if line:
+              string_line = json.loads(line)["response"]
+              full_response+=string_line
+              python_bridge.update_text_block(string_line)
+      unreal.log("Done!")
+
+    return full_response, False
+
 
 @unreal.uclass()
 class PythonBridgeImplementation(unreal.PythonBridge):
 
     @unreal.ufunction(override=True)
     def ask_to_ai_python(self, prompt) -> unreal.PythonResult:
-        print("I'm thinking about your prompt: \""+prompt+"\"...")
-        #return unreal.PythonResult("Here is a valid 5x5 Minesweeper grid with 2 mines, The grid follows Minesweeper's rules: mines ('X') are placed, and surrounding numbers indicate how many mines are adjacent. Let me know if you need modifications! 🚀 ​",'{  "grid": [    [0, 0, 0, 1, "X"],    [0, 0, 0, 1, 1],    [0, 1, 1, 1, 0],    [0, 1, "X", 1, 0],    [0, 1, 1, 1, 0]  ]}')
-        response = ask_to_ai_and_parse_json(prompt,self.ai_model,self.ai_url,self.ai_stream)
-        return unreal.PythonResult(response[0],response[1])
+
+        unreal.log("I'm thinking about your prompt: \""+prompt+"\"...")
+
+        if self.ai_stream:
+          full_response, has_error = get_stream(prompt,self.ai_model,self.ai_url,self)
+
+          return unreal.PythonResult(full_response,find_json_in_text(full_response),has_error)
+        else:
+          response, json, has_error = ask_to_ai_and_parse_json(prompt,self.ai_model,self.ai_url)
+          return unreal.PythonResult(response,json,has_error)

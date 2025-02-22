@@ -4,7 +4,6 @@
 
 #include "Modules/ModuleManager.h"
 
-
 class FToolBarBuilder;
 class FMenuBuilder;
 class SMineButton;
@@ -27,7 +26,8 @@ public:
 	FReply ClearMinesweeperMinigame();
 	void AddButtonMinesweeperMinigame(const FString& InString, const int32& InColumn, const int32& InRow);
 	void MinesweeperGameOver();
-	void AddTextBlockToScrollBox(const FString& InString, const FSlateColor& InColor, const FString& SpeakerName);
+	void ScrollToEndChatBox();
+	TSharedRef<STextBlock> AddTextBlockToScrollBox(const FString& InString, const FSlateColor& InColor, const FString& SpeakerName);
 
 private:
 
@@ -42,7 +42,8 @@ private:
 	TSharedPtr<SScrollBox> ChatScrollBox;
 	TSharedPtr<SGridPanel> MinesGridPanel;
 
-	TArray<TSharedRef<SMineButton>> MinesButtons;
+	TArray<TSharedRef<SMineButton>> MinesweeperButtons;
+	TArray<TSharedRef<SMineButton>> MinesweeperBombButtons;
 	TArray<int32> MinesweeperField;
 	int32 MinesweeperMines;
 	int32 MinesweeperMaxRow;
@@ -50,5 +51,11 @@ private:
 	FText PromptToSend;
 	
 	UPythonBridge* PythonBridge;
+
+	//SPEAKERS TEXTS OF CHAT BOX
+	const FString& UserSpeakerText = "USER";
+	const FString& AISpeakerText = "AI";
+	const FString& JsonSpeakerText = "JSON";
+	const FString& ErrorSpeakerText = "ERROR";
 
 };

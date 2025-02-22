@@ -60,12 +60,10 @@ void SMineButton::ClearMeAndEmptyNeighbours()
 void SMineButton::GameOver()
 {
 	OnGameOver.ExecuteIfBound();
-	UE_LOG(LogTemp, Error, TEXT("GAME OVER!"));
 }
 
 void SMineButton::AddNeighbour(TSharedRef<SMineButton> NeighbourMine)
 {
-
 	if(Neighbours.Contains(NeighbourMine) && NeighbourMine != SharedThis(this))
 	{
 		return;

@@ -16,4 +16,6 @@ struct MINESWEEPERMINGAME_API FPythonResult
 	FString Response;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Python")
 	FString JsonResponse;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Python")
+	bool bError;
 };
