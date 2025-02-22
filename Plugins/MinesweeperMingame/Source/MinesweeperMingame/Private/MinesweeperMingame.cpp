@@ -16,6 +16,8 @@
 #include "Json.h"
 
 #include "SMineButton.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
+
 
 static const FName MinesweeperMingameTabName("MinesweeperMingame");
 
@@ -154,7 +156,8 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 							.HAlign(HAlign_Fill)
 							.VAlign(VAlign_Fill)
 							[
-								SAssignNew(SendPromptEditableTextBox, SEditableTextBox)
+								SAssignNew(SendPromptEditableTextBox, SMultiLineEditableTextBox)
+								.Padding(5.f)
 								.OnTextCommitted_Raw(this, &FMinesweeperMingameModule::SendLastPrompt)
 							]
 							+ SHorizontalBox::Slot()

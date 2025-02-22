@@ -8,6 +8,7 @@ class FToolBarBuilder;
 class FMenuBuilder;
 class SMineButton;
 class UPythonBridge;
+class SMultiLineEditableTextBox;
 
 class FMinesweeperMingameModule : public IModuleInterface
 {
@@ -38,7 +39,7 @@ private:
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
 
-	TSharedPtr<SEditableTextBox> SendPromptEditableTextBox;
+	TSharedPtr<SMultiLineEditableTextBox> SendPromptEditableTextBox;
 	TSharedPtr<SScrollBox> ChatScrollBox;
 	TSharedPtr<SGridPanel> MinesGridPanel;
 
