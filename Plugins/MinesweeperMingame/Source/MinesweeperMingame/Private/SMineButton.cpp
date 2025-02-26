@@ -14,6 +14,7 @@ void SMineButton::Construct(const FArguments& InArgs)
 			.Text(this, &SMineButton::GetText)
 			.ColorAndOpacity(FColor::Red)
 	];
+
 }
 
 void SMineButton::Press()
@@ -23,21 +24,39 @@ void SMineButton::Press()
 		return;
 	}
 
-	switch (Value)
+	ClearMeAndEmptyNeighbours();
+}
+
+void SMineButton::FixValue()
+{
+	//a bomb dosen't need to check for near bombs since it's value doesn't change
+	if (Value == INT32_MAX)
 	{
-		case INT32_MAX:
-			GameOver();
-			MyText = FText::FromString("X");
-			break;
-		default:		
-			ClearMeAndEmptyNeighbours();		
-			break;
+		return;
 	}
 
+	int32 NearBombs = 0;
+
+	for (size_t i = 0; i < Neighbours.Num(); i++)
+	{
+		if (Neighbours[i]->Value == INT32_MAX)
+		{
+			NearBombs++;
+		}
+	}
+
+	Value = NearBombs;
 }
 
 void SMineButton::ClearMeAndEmptyNeighbours()
 {
+	OnPressed.ExecuteIfBound();
+
+	if (Value == INT32_MAX)
+	{
+		return;
+	}
+
 	MyText = FText::FromString(FString::FromInt(Value));
 	IsHidden = false;
 
@@ -55,11 +74,6 @@ void SMineButton::ClearMeAndEmptyNeighbours()
 			NeighbourBomb.ClearMeAndEmptyNeighbours();
 		}
 	}
-}
-
-void SMineButton::GameOver()
-{
-	OnGameOver.ExecuteIfBound();
 }
 
 void SMineButton::AddNeighbour(TSharedRef<SMineButton> NeighbourMine)

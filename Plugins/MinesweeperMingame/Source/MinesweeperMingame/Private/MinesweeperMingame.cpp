@@ -101,14 +101,14 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 					.VAlign(VAlign_Fill)
 					[
 						SNew(SVerticalBox)
-						+ SVerticalBox::Slot()
-						.HAlign(HAlign_Right)
+						+SVerticalBox::Slot()
+						.HAlign(HAlign_Fill)
 						.VAlign(VAlign_Top)
 						.AutoHeight()
 						[
 							SNew(SHorizontalBox)
-							+ SHorizontalBox::Slot()
-							.AutoWidth()
+							+SHorizontalBox::Slot()
+							.FillWidth(0.5f)
 							.HAlign(HAlign_Left)
 							.VAlign(VAlign_Fill)
 							[
@@ -122,7 +122,14 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 								]
 							]
 							+SHorizontalBox::Slot()
-							.AutoWidth()
+							.FillWidth(1.f)
+							.HAlign(HAlign_Fill)
+							.VAlign(VAlign_Fill)
+							[
+									SNew(SSpacer)
+							]
+							+SHorizontalBox::Slot()
+							.FillWidth(0.5f)
 							.HAlign(HAlign_Right)
 							.VAlign(VAlign_Fill)
 							[
@@ -141,6 +148,7 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 						.HAlign(HAlign_Fill)
 						.VAlign(VAlign_Fill)
 						.FillHeight(1.f)
+						.Padding(0.f,10.f,0.f,0.f)
 						[
 							SAssignNew(ChatScrollBox,SScrollBox)
 							
@@ -155,6 +163,7 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 							.FillWidth(0.9f)
 							.HAlign(HAlign_Fill)
 							.VAlign(VAlign_Fill)
+							.Padding(0.f,0.f,10.f,0.f)
 							[
 								SAssignNew(SendPromptEditableTextBox, SMultiLineEditableTextBox)
 								.Padding(5.f)
@@ -163,7 +172,7 @@ TSharedRef<SDockTab> FMinesweeperMingameModule::OnSpawnPluginTab(const FSpawnTab
 							+ SHorizontalBox::Slot()
 							.FillWidth(0.3f)
 							.HAlign(HAlign_Fill)
-							.VAlign(VAlign_Center)
+							.VAlign(VAlign_Fill)
 							.AutoWidth()
 							[
 								SNew(SButton)
@@ -259,7 +268,10 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 							}
 						}
 
-						//TODO: check if the grid has correct values
+						for (size_t i = 0; i < MinesweeperButtons.Num(); i++)
+						{
+							MinesweeperButtons[i]->FixValue();
+						}
 					}
 					else
 					{
@@ -280,6 +292,8 @@ FReply FMinesweeperMingameModule::SendPrompt(bool bResendLast)
 
 void FMinesweeperMingameModule::SendLastPrompt(const FText& InText, ETextCommit::Type CommitType)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Commit Type = %d"), CommitType);
+
 	//if not pressed enter return
 	if(CommitType != ETextCommit::Type::OnEnter)
 	{
@@ -302,6 +316,7 @@ FReply FMinesweeperMingameModule::ClearMinesweeperMinigame()
 	MinesGridPanel->ClearChildren();
 	MinesweeperField.Empty();
 	MinesweeperMines = 0;
+	NotMineCells = 0;
 
 	return FReply::Handled();
 }
@@ -310,18 +325,21 @@ void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InSt
 {
 	TSharedRef<SMineButton> Button = SNew(SMineButton);
 
+
 	int32 CellValue = 0;
 
 	if (FCString::IsNumeric(*InString))
 	{
 		CellValue = FCString::Atoi(*InString);
+		NotMineCells++;
+		Button->OnPressed.BindRaw(this, &FMinesweeperMingameModule::PressedNotMine);
 	}
 	else 
 	{
 		// if not a number then is a bomb!
 		CellValue = INT32_MAX;
 		MinesweeperMines++;
-		Button->OnGameOver.BindRaw(this, &FMinesweeperMingameModule::MinesweeperGameOver);
+		Button->OnPressed.BindRaw(this, &FMinesweeperMingameModule::MinesweeperGameOver,false);
 		MinesweeperBombButtons.Add(Button);
 	}
 
@@ -338,24 +356,70 @@ void FMinesweeperMingameModule::AddButtonMinesweeperMinigame(const FString& InSt
 	Button->Column = InColumn;
 	Button->Row = InRow;	
 
-	//add up and left bomb to the neighours
+	int32 NewIndex;
+
 	//if not at left border
-	if (MyArrayIndex % MinesweeperMaxRow != 0 && MinesweeperButtons.IsValidIndex(MyArrayIndex - 1) )
+	if (InColumn != 0)
 	{
-		const TSharedRef<SMineButton> OtherMine = MinesweeperButtons[MyArrayIndex - 1];
-		Button->AddNeighbour(OtherMine);
+		NewIndex = MyArrayIndex - 1;
+		if (MinesweeperButtons.IsValidIndex(NewIndex))
+		{
+			const TSharedRef<SMineButton> OtherMine = MinesweeperButtons[NewIndex];
+			Button->AddNeighbour(OtherMine);
+			UE_LOG(LogTemp, Warning, TEXT("NL Adding to the [%d] bomb the [%d] bomb"), MyArrayIndex, NewIndex);
+		}
+
+		NewIndex = MyArrayIndex - MinesweeperMaxRow - 1;
+		if (MinesweeperButtons.IsValidIndex(NewIndex))
+		{
+			const TSharedRef<SMineButton> OtherMine = MinesweeperButtons[NewIndex];
+			Button->AddNeighbour(OtherMine);
+			UE_LOG(LogTemp, Warning, TEXT("NL Adding to the [%d] bomb the [%d] bomb"), MyArrayIndex, NewIndex);
+		}
+	}
+	
+	//if not at right border (to up-right)
+	if (InColumn != MinesweeperMaxRow-1)
+	{
+		NewIndex = MyArrayIndex - MinesweeperMaxRow + 1;
+		if (MinesweeperButtons.IsValidIndex(NewIndex))
+		{
+			const TSharedRef<SMineButton> OtherMine = MinesweeperButtons[NewIndex];
+			Button->AddNeighbour(OtherMine);
+			UE_LOG(LogTemp, Warning, TEXT("NR Adding to the [%d] bomb the [%d] bomb"), MyArrayIndex, NewIndex);
+		}
 	}
 
-	if (MinesweeperButtons.IsValidIndex(MyArrayIndex - MinesweeperMaxRow))
+	NewIndex = MyArrayIndex - MinesweeperMaxRow;
+
+	//to up
+	if (MinesweeperButtons.IsValidIndex(NewIndex))
 	{
-		const TSharedRef<SMineButton> OtherMine = MinesweeperButtons[MyArrayIndex - MinesweeperMaxRow];
+		const TSharedRef<SMineButton> OtherMine = MinesweeperButtons[NewIndex];
 		Button->AddNeighbour(OtherMine);
+		UE_LOG(LogTemp, Warning, TEXT("Adding to the [%d] bomb the [%d] bomb"), MyArrayIndex, NewIndex);
 	}
 }
 
-void FMinesweeperMingameModule::MinesweeperGameOver()
+void FMinesweeperMingameModule::PressedNotMine()
 {
-	AddTextBlockToScrollBox(LOCTEXT("GameOverMinesweeper","You lose! Ask me again for another match :)").ToString(), FColor::White, AISpeakerText);
+	NotMineCells--;
+	if (NotMineCells <= 0)
+	{
+		MinesweeperGameOver(true);
+	}
+}
+
+void FMinesweeperMingameModule::MinesweeperGameOver(const bool bHasWin)
+{
+	if (bHasWin)
+	{
+		AddTextBlockToScrollBox(LOCTEXT("WinMinesweeper","Congratulations, you win! Do you want to try another match? :)").ToString(), FColor::White, AISpeakerText);
+	}
+	else
+	{
+		AddTextBlockToScrollBox(LOCTEXT("LoseMinesweeper", "You lose! Ask me if you want another try :(").ToString(), FColor::White, AISpeakerText);
+	}
 
 	for (size_t i = 0; i < MinesweeperBombButtons.Num(); i++)
 	{
@@ -364,7 +428,16 @@ void FMinesweeperMingameModule::MinesweeperGameOver()
 
 	for (size_t i = 0; i < MinesweeperButtons.Num(); i++)
 	{
-		MinesweeperButtons[i].Get().SetEnabled(false);
+		TSharedRef<SMineButton> CurrentMine = MinesweeperButtons[i];
+		CurrentMine->SetEnabled(false);
+		if (CurrentMine->Value == INT32_MAX)
+		{
+			CurrentMine->MyText = FText::FromString(TEXT("X"));
+		}
+		else
+		{
+			CurrentMine->MyText = FText::FromString(FString::FromInt(CurrentMine->Value));
+		}
 	}
 }
 

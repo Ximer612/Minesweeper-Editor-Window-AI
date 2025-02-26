@@ -26,7 +26,8 @@ public:
 	void SendLastPrompt(const FText& InText, ETextCommit::Type CommitType);
 	FReply ClearMinesweeperMinigame();
 	void AddButtonMinesweeperMinigame(const FString& InString, const int32& InColumn, const int32& InRow);
-	void MinesweeperGameOver();
+	void PressedNotMine();
+	void MinesweeperGameOver(const bool bHasWin = false);
 	void ScrollToEndChatBox();
 	TSharedRef<STextBlock> AddTextBlockToScrollBox(const FString& InString, const FSlateColor& InColor, const FString& SpeakerName);
 
@@ -47,6 +48,7 @@ private:
 	TArray<TSharedRef<SMineButton>> MinesweeperBombButtons;
 	TArray<int32> MinesweeperField;
 	int32 MinesweeperMines;
+	int32 NotMineCells;
 	int32 MinesweeperMaxRow;
 
 	FText PromptToSend;

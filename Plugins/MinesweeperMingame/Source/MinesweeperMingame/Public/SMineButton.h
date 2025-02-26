@@ -2,7 +2,7 @@
 
 #pragma once
 
-DECLARE_DELEGATE(FOnGameOver)
+DECLARE_DELEGATE(FOnPressed)
 
 #include "SlateBasics.h"
 #include "SlateExtras.h"
@@ -17,10 +17,13 @@ public:
 
 	void Construct(const FArguments& InArgs);
 	virtual void Press() override;
+	void FixValue();
+
 
 	bool operator==(const SMineButton& Other);
 
 private:
+
 	TSharedPtr<STextBlock> TextBlock;
 
 	int32 Value;
@@ -31,12 +34,12 @@ private:
 	TArray<TSharedRef<SMineButton>> Neighbours;
 	bool IsHidden = true;
 
+private:
 	void ClearMeAndEmptyNeighbours();
-	void GameOver();
 	void AddNeighbour(TSharedRef<SMineButton> NeighbourMine);
 	FText GetText() const;
 
-	FOnGameOver OnGameOver;
+	FOnPressed OnPressed;
 
 	friend class FMinesweeperMingameModule;
 };
