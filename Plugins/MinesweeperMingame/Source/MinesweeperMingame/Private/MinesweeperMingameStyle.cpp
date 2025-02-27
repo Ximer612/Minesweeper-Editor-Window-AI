@@ -41,7 +41,7 @@ TSharedRef< FSlateStyleSet > FMinesweeperMingameStyle::Create()
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("MinesweeperMingameStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("MinesweeperMingame")->GetBaseDir() / TEXT("Resources"));
 
-	Style->Set("MinesweeperMingame.OpenPluginWindow", new IMAGE_BRUSH_SVG(TEXT("PlaceholderButtonIcon"), Icon20x20));
+	Style->Set("MinesweeperMingame.OpenPluginWindow", new IMAGE_BRUSH_SVG(TEXT("ToolbarIcon"), Icon20x20));
 
 	return Style;
 }
